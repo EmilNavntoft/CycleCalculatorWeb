@@ -1,0 +1,30 @@
+﻿@using CycleCalculatorWeb.CycleModel.Model
+@using CycleCalculatorWeb.CycleModel.Model.Enums
+<div class="sideBar">
+	<h5 class="title">Component Selector</h5>
+	<div class="container">
+		<button class="addComponentButton" @onclick=@(_ => AddComponentClicked(CycleComponentType.Compressor))>
+			<svg class="buttonIcon">
+				<CycleCalculatorWeb.GUI.SVG.Compressor Xoffset="-50" Yoffset="-25" />
+			</svg>
+			<h6 class="componentName">Compressor</h6>
+		</button>
+		<button class="addComponentButton" @onclick=@(_ => AddComponentClicked(CycleComponentType.Valve))>
+			<svg class="buttonIcon">
+				<CycleCalculatorWeb.GUI.SVG.Valve Xoffset="-50" Yoffset="-25" />
+			</svg>
+			<h6 class="componentName">PRV</h6>
+		</button>
+	</div>
+</div>
+
+
+@code {
+	[Parameter]
+	public EventCallback<CycleComponentType> OnAddComponentClicked { get; set; }
+
+	private async void AddComponentClicked(CycleComponentType type)
+	{
+		await OnAddComponentClicked.InvokeAsync(type);
+	}
+}

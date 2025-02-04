@@ -1,0 +1,84 @@
+﻿@using CycleCalculatorWeb.CycleModel.Model.IO
+@using CycleCalculatorWeb.GUI.Services
+@using Microsoft.JSInterop
+@using static CycleCalculatorWeb.GUI.DragDropComponents.Connector
+@inject IJSRuntime JS
+@inject IMouseService mouseSrv
+
+
+<svg class="port" id="A"  @onmouseover="@OnMouseOver" @onmouseout="@OnMouseOut" @onclick="OnClick" @onclick:stopPropagation >
+	<circle cx=@X cy=@Y r="@_Radius" fill="black" />
+</svg>
+
+@code {
+	[Parameter]
+	public EventCallback<DragDropPort> PortClicked { get; set; }
+
+	[Parameter]
+	public double X { get; set; }
+
+	[Parameter]
+	public double Y { get; set; }
+
+	[Parameter]
+	public DragDrop Parent { get; set; }
+
+	[Parameter]
+	public Direction Direction { get; set; }
+
+	[Parameter]
+	public PortIdentifier PortIdentifier { get; set; }
+
+	[Parameter]
+	public EventCallback<DragDropPort> OnPortInitialized { get; set; }
+
+	private double _Radius = 4;
+	private bool _IsClicked = false;
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+		OnPortInitialized.InvokeAsync(this);
+	}
+
+	public void ResetIsClicked()
+	{
+		_IsClicked = false;
+		ResetRadius();
+	}
+
+	private void ResetRadius()
+	{
+		_Radius = 4;
+	}
+
+	private void EnlargeRadius()
+	{
+		_Radius = 7;
+	}
+
+	private void OnClick()
+	{
+		_IsClicked = true;
+		EnlargeRadius();
+		PortClicked.InvokeAsync(this);
+	}
+
+	private void OnMouseOver()
+	{
+		if (!_IsClicked)
+		{
+			EnlargeRadius();
+		}
+	}
+
+	private void OnMouseOut()
+	{
+		if (!_IsClicked)
+		{
+			ResetRadius();
+		}
+	}
+
+
+}

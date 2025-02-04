@@ -1,0 +1,245 @@
+﻿@using CycleCalculatorWeb.CycleModel.Model
+@using CycleCalculatorWeb.CycleModel.Model.Attributes
+@using CycleCalculatorWeb.CycleModel.Model.IO
+@using CycleCalculatorWeb.GUI.SVG
+@using System.ComponentModel.DataAnnotations
+@using Meziantou.AspNetCore.Components
+@using Microsoft.JSInterop
+@using static CycleCalculatorWeb.GUI.DragDropComponents.Draggable
+@inject IJSRuntime JS
+@inject MouseService mouseSrv
+
+<Draggable @ref=_draggable @bind-X=@X @bind-Y=@Y OnClick="OnClick" OnUp="OnUp">
+
+	@if(CycleComponent is SimpleCompressor)
+	{
+		<Compressor />
+	}
+	@if (CycleComponent is PRV)
+	{
+		<Valve />
+	}
+	@if (CycleComponent is TemperatureBoundary)
+	{
+		<path style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+			  d="M 74.791338,67.620944 V 49.979875 30.556586"
+			  id="path1-1"
+			  sodipodi:nodetypes="ccc" />
+		<rect style="fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:0"
+			  id="rect1"
+			  width="47.542301"
+			  height="35.173573"
+			  x="51.021008"
+			  y="31.566029" />
+		<rect style="fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:0"
+			  id="rect2"
+			  width="78.592964"
+			  height="51.149849"
+			  x="40.713734"
+			  y="19.197298" />
+		<rect style="fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:0"
+			  id="rect3"
+			  width="0.38652277"
+			  height="0.77304554"
+			  x="73.181641"
+			  y="50.763325" />
+		<rect style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1.50286;stroke-opacity:1"
+			  id="rect4"
+			  width="50.873943"
+			  height="8.3564415"
+			  x="49.48402"
+			  y="45.604992"
+			  ry="0" />
+		<rect style="fill:#ffffff;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-opacity:0"
+			  id="rect5"
+			  width="60.812916"
+			  height="42.259823"
+			  x="46.640415"
+			  y="28.602684" />
+	}
+	@if (_CycleComponent is TeeSection)
+	{
+		<path style="fill:none;stroke:#000000;stroke-width:2px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+			  d="M 57.151147,51.389926 73.35294,51.263672 v 18.680046 h 3.371103 V 51.285333 H 93.579569 V 48.071449 H 57.151148 Z"
+			  id="path1"
+			  sodipodi:nodetypes="ccccccccc" />
+		<rect style="fill:#ffffff;stroke:#ffffff;stroke-width:2;fill-opacity:0;stroke-opacity:0"
+			  id="rect1"
+			  width="36.259506"
+			  height="22.138342"
+			  x="57.3046"
+			  y="47.738647" />
+	}
+
+	@if (CycleComponent.PortA.Temperature != EngineeringUnits.Temperature.NaN)
+	{
+		<svg height="30" width="200" xmlns="http://www.w3.org/2000/svg">
+			<text x="0" y="15" fill="black">@Math.Round(CycleComponent.PortA.Temperature.DegreeCelsius, 1) </text>
+			<text x="45" y="15" fill="black">@Math.Round(CycleComponent.PortA.Enthalpy.KilojoulePerKilogram, 1)</text>
+			<text x="0" y="30" fill="black">@Math.Round(CycleComponent.PortA.Pressure.Bar, 1)</text>
+		</svg>
+	}
+
+	@if (CycleComponent.PortB.Temperature != EngineeringUnits.Temperature.NaN)
+	{
+	<svg height="30" width="200" xmlns="http://www.w3.org/2000/svg">
+		<text x="100" y="15" fill="black">@Math.Round(CycleComponent.PortB.Temperature.DegreeCelsius,1)</text>
+		<text x="140" y="15" fill="black">@Math.Round(CycleComponent.PortB.Enthalpy.KilojoulePerKilogram,1)</text>
+		<text x="100" y="30" fill="black">@Math.Round(CycleComponent.PortB.Pressure.Bar,1)</text>
+	</svg>
+	}
+</Draggable>
+
+<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75-25*Math.Cos(_angle*Math.PI/180)) Y=(Y+50-25*Math.Sin(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortADirection PortIdentifier="@PortIdentifier.A" />
+<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75+25*Math.Cos(_angle*Math.PI/180)) Y=(Y+50+25*Math.Sin(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortBDirection PortIdentifier="@PortIdentifier.B" />
+@if (_NPorts == 3)
+{
+	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75-25*Math.Sin(_angle*Math.PI/180)) Y=(Y+50+25*Math.Cos(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortCDirection PortIdentifier="@PortIdentifier.C" />
+}
+
+@if (_ShowPropertyWindow)
+{
+	<foreignObject x=@(X+90) y=@(Y+75) width="220" height="300" style="position:absolute; z-index: 10;" @onmousedown:stopPropagation>
+		<div xmlns="http://www.w3.org/1999/xhtml" style="border: 1px solid black; background-color: white; opacity: 1;">
+			<EditForm Model=_CycleComponent OnSubmit="() => {_ShowPropertyWindow = false;}">
+				<DataAnnotationsValidator />
+				<ValidationSummary />
+				@if (_CycleComponent is SimpleCompressor)
+				{
+					<GenericForm Model=(SimpleCompressor)_CycleComponent />
+				}
+				@if (_CycleComponent is PRV)
+				{
+					<GenericForm Model=(PRV)_CycleComponent />
+				}
+				@if (_CycleComponent is TemperatureBoundary)
+				{
+					<GenericForm Model=(TemperatureBoundary)_CycleComponent />
+				}
+				@if (_CycleComponent is TeeSection)
+				{
+					<GenericForm Model=(TeeSection)_CycleComponent />
+				}
+				<button type="submit">OK</button>
+			</EditForm>
+		</div>
+	</foreignObject>
+}
+@code {
+	private Draggable _draggable = new Draggable();
+
+	private double _angle = 0;
+
+	public List<DragDropPort> Ports = new();
+
+	[Parameter]
+	public double X { get; set; }
+	[Parameter]
+	public double Y { get; set; }
+
+	[Parameter]
+	public double InitialX { get; set; } = 200;
+	[Parameter]
+	public double InitialY { get; set; } = 200;
+
+	[Parameter]
+	public EventCallback<DragDropPort> OnClickPortA { get; set; }
+	[Parameter]
+	public EventCallback<DragDropPort> OnClickPortB { get; set; }
+	[Parameter]
+	public EventCallback<DragDropPort> OnClickPortC { get; set; }
+	[Parameter]
+	public EventCallback<DragDrop> OnDragDropClick { get; set; }
+	[Parameter]
+	public EventCallback<DragDrop> OnDragDropUp { get; set; }
+	[Parameter]
+	public EventCallback<DragDrop> OnDragDropInitialized { get; set; }
+
+	private CycleComponent _CycleComponent;
+	[Parameter]
+	public CycleComponent CycleComponent { 
+		get
+		{
+			return _CycleComponent;
+		} 
+		set
+		{
+			_CycleComponent = value;
+			if (_CycleComponent is TeeSection)
+			{
+				_NPorts = 3;
+			}
+			else
+			{
+				_NPorts = 2;
+			}
+		}
+	}
+
+	[Parameter]
+	public string Name { get; set; }
+
+	private int _NPorts;
+	private Connector.Direction PortADirection { get; set; } = Connector.Direction.Left;
+	private Connector.Direction PortBDirection { get; set; } = Connector.Direction.Right;
+	private Connector.Direction PortCDirection { get; set; } = Connector.Direction.Bottom;
+
+	private void OnPortInitialized(DragDropPort port)
+	{
+		Ports.Add(port);
+		if (Ports.Count == _NPorts)
+		{
+			OnDragDropInitialized.InvokeAsync(this);
+		}
+	}
+
+	private async void PortClicked(DragDropPort port)
+	{
+		await OnClickPortA.InvokeAsync(port);
+	}
+
+	bool _ShowPropertyWindow = false;
+	private void OnClick(MouseEventArgs e)
+	{
+		if (e.Button == (long)0)
+		{
+			OnDragDropClick.InvokeAsync(this);
+		}
+		if (e.Button == (long)2)
+		{
+			OnDragDropClick.InvokeAsync(this);
+			_ShowPropertyWindow = !_ShowPropertyWindow;
+		}
+	}
+
+	private void OnUp()
+	{
+		OnDragDropUp.InvokeAsync(this);
+	}
+
+	public void Rotate()
+	{
+		if (_angle + 90 < 360)
+		{
+			_angle += 90;
+		}
+		else
+		{
+			_angle = 0;
+		}
+
+		PortADirection = RotateDirection(PortADirection);
+		PortBDirection = RotateDirection(PortBDirection);
+		PortCDirection = RotateDirection(PortCDirection);
+
+		_draggable.Rotate();
+	}
+
+	private Connector.Direction RotateDirection(Connector.Direction dir)
+	{
+		if (dir == Connector.Direction.Left) return Connector.Direction.Top;
+		else if (dir == Connector.Direction.Top) return Connector.Direction.Right;
+		else if (dir == Connector.Direction.Right) return Connector.Direction.Bottom;
+		else return Connector.Direction.Left;
+	}
+}
