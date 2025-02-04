@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>AnyCPU;x86</Platforms>
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	<PublishUrl>docs</PublishUrl>
+	<PublishAot>False</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,11 +20,4 @@
     <PackageReference Include="SharpFluids" Version="3.0.504" />
     <PackageReference Include="Xamarin.Essentials" Version="1.8.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Content Update="wwwroot\js\coolprop.wasm">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  
 </Project>

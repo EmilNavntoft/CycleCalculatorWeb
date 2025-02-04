@@ -43,7 +43,10 @@
 #*.jpg   binary
 #*.png   binary
 #*.gif   binary
-
+*.js binary
+*.json binary
+*.css binary
+*.html binary
 ###############################################################################
 # diff behavior for common document formats
 # 
