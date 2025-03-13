@@ -4,6 +4,8 @@ using EngineeringUnits;
 using SharpFluids;
 using System.ComponentModel.DataAnnotations;
 using CycleCalculatorWeb.CycleModel.Exceptions;
+using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace CycleCalculatorWeb.CycleModel.Model
 {

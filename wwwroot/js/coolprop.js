@@ -6513,3 +6513,5 @@ if (Module["preInit"]) {
     }
 }
 run();
+
+export default Module; 

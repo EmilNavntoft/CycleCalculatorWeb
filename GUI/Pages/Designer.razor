@@ -1,17 +1,19 @@
 ﻿@page "/"
-@using CycleCalculatorWeb.CycleModel.Model.Enums
-@using CycleCalculatorWeb.GUI.DragDropComponents
-@using CycleCalculatorWeb.GUI.SaveFileIO
-@using CycleCalculatorWeb.CycleModel.Model
-@using CycleCalculatorWeb.CycleModel.Solver
+@using CycleCalculatorWeb.CoolpropJsInterop
 @using EngineeringUnits
-@using System.Text.Json
-@using System.Text
-@using SharpFluids
-@using static CycleCalculatorWeb.GUI.DragDropComponents.Draggable
-﻿@using static CycleCalculatorWeb.GUI.DragDropComponents.Connector
+@	using CycleCalculatorWeb.CycleModel.Model.Enums
+@	using CycleCalculatorWeb.GUI.DragDropComponents
+@	using CycleCalculatorWeb.GUI.SaveFileIO
+@	using CycleCalculatorWeb.CycleModel.Model
+@	using CycleCalculatorWeb.CycleModel.Solver
+@	using EngineeringUnits
+@	using System.Text.Json
+@	using System.Text
+@	using SharpFluids
+@	using static CycleCalculatorWeb.GUI.DragDropComponents.Draggable
+﻿@	using static CycleCalculatorWeb.GUI.DragDropComponents.Connector
 @inject MouseService mouseSrv
-@inject IJSRuntime js
+@inject IJSRuntime JS
 
 <div>
 	<CycleCalculatorWeb.GUI.Layout.SideBar OnAddComponentClicked=AddComponent />
@@ -47,16 +49,21 @@
 @code {
 	private List<DragDrop> DragDrops = new List<DragDrop>();
 	private List<Connector> Connectors = new List<Connector>();
+	private IJSObjectReference? coolpropJs;
 
-	protected override void OnInitialized()
+	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-
-		base.OnInitialized();
+		if (firstRender)
+		{
+			coolpropJs = await JS.InvokeAsync<IJSObjectReference>("import",
+				"./js/coolprop.js");
+		}
 	}
 
-	public void Save()
+	public async void Save()
 	{
-		js.InvokeAsync<object>("updatePH", null);
+		CoolpropJsFluid f = new(coolpropJs);
+		f.UpdatePH(Pressure.FromBar(50), Enthalpy.FromKilojoulePerKilogram(500));
 		// SaveFile saveFile = new();
 		// foreach (var dragDrop in DragDrops)
 		// {

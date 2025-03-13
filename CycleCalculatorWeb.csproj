@@ -20,4 +20,10 @@
     <PackageReference Include="SharpFluids" Version="3.0.504" />
     <PackageReference Include="Xamarin.Essentials" Version="1.8.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\coolprop.wasm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
