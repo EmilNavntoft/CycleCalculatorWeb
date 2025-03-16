@@ -1,4 +1,4 @@
-﻿@using CycleCalculatorWeb.CycleModel.Model.IO
+﻿@using CycleCalculator.CycleModel.Model.IO
 @using CycleCalculatorWeb.GUI.Services
 @using Microsoft.JSInterop
 @using static CycleCalculatorWeb.GUI.DragDropComponents.Connector
@@ -6,7 +6,7 @@
 @inject IMouseService mouseSrv
 
 
-<svg class="port" id="A"  @onmouseover="@OnMouseOver" @onmouseout="@OnMouseOut" @onclick="OnClick" @onclick:stopPropagation >
+<svg class="port" id="A" @onmouseover="@OnMouseOver" @onmouseout="@OnMouseOut" @onclick="OnClick" @onclick:stopPropagation>
 	<circle cx=@X cy=@Y r="@_Radius" fill="black" />
 </svg>
 

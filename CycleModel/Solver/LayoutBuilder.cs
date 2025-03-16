@@ -1,12 +1,7 @@
-﻿using CycleCalculatorWeb.CycleModel.Model;
-using CycleCalculatorWeb.CycleModel.Model.IO;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CycleCalculator.CycleModel.Model;
+using CycleCalculator.CycleModel.Model.IO;
 
-namespace CycleCalculatorWeb.CycleModel.Solver
+namespace CycleCalculator.CycleModel.Solver
 {
 	public static class LayoutBuilder
 	{

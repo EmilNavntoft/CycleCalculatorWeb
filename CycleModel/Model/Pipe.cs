@@ -1,10 +1,11 @@
-﻿using CycleCalculatorWeb.CycleModel.Exceptions;
-using CycleCalculatorWeb.CycleModel.Model.IO;
+﻿using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculator.CycleModel.Model.IO;
 using EngineeringUnits;
+using Microsoft.JSInterop;
 using SharpFluids;
-using static CycleCalculatorWeb.CycleModel.Model.IO.PortIdentifier;
+using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 
-namespace CycleCalculatorWeb.CycleModel.Model
+namespace CycleCalculator.CycleModel.Model
 {
     public class Pipe : CycleComponent
     {
@@ -14,7 +15,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
         public double PressureDropCoefficient { get; set; }
 
         private Density _density = Density.FromKilogramPerCubicMeter(10);
-        public Pipe(string name, double pressureDropCoefficient) : base(name)
+        public Pipe(string name, double pressureDropCoefficient, IJSInProcessObjectReference coolprop) : base(name, coolprop)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);
@@ -31,18 +32,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
             downstreamPort.MassFlow = MassFlow.Zero - upstreamPort.MassFlow;
 
             TransferState();
-        }
-
-        public override double[] GetMassBalanceEquations(double[] x)
-        {           
-            double[] equations =
-            [
-                x[PortA.MdotIdent] + x[PortB.MdotIdent],
-                x[PortA.MdotIdent] + x[PortA.Connection.MdotIdent],
-                x[PortA.PIdent] - x[PortA.Connection.PIdent],
-                x[PortB.PIdent] + PressureDropCoefficient * (x[PortA.MdotIdent]/_density.KilogramPerCubicMeter) * (x[PortA.MdotIdent]/_density.KilogramPerCubicMeter) - x[PortA.PIdent],
-            ];
-            return equations;
         }
 
         public override void CalculateHeatBalanceEquation()

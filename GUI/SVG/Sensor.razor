@@ -1,0 +1,32 @@
+﻿@using System.Globalization
+<circle 
+       style="fill:#ffffff;fill-opacity:0;stroke:#000000;stroke-width:1.95049;stroke-dasharray:none"
+       id="path1"
+       cx=@((75+Xoffset).ToString(_NumberFormatInfo))
+       cy=@((50+Yoffset).ToString(_NumberFormatInfo))
+       r="7" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+       d="m @((71+Xoffset).ToString(_NumberFormatInfo)),@((43.3+Yoffset).ToString(_NumberFormatInfo)) 4,-5.9 4,5.9 z"
+       id="path6"
+       sodipodi:nodetypes="cccc" />
+    <rect
+       style="fill:#ffffff;fill-opacity:0;stroke:#000000;stroke-width:1;stroke-dasharray:none;stroke-opacity:0"
+       id="rect6"
+       width="17.5"
+       height="20.6"
+       x=@((70+Xoffset).ToString(_NumberFormatInfo))
+       y=@((40+Yoffset).ToString(_NumberFormatInfo)) />
+
+@code {
+    [Parameter]
+	public double Xoffset { get; set; } = 0;
+
+	[Parameter]
+	public double Yoffset { get; set; } = 0;
+
+	NumberFormatInfo _NumberFormatInfo = new NumberFormatInfo
+	{
+		NumberDecimalSeparator = "."
+	};
+}

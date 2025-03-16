@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CycleCalculatorWeb.CycleModel.Model.IO
+namespace CycleCalculator.CycleModel.Model.IO
 {
     public enum PortIdentifier
     {

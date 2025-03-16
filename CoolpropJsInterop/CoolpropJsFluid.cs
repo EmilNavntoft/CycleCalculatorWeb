@@ -1,66 +1,71 @@
 ﻿using EngineeringUnits;
 using Microsoft.JSInterop;
+using System.Diagnostics;
 
 namespace CycleCalculatorWeb.CoolpropJsInterop
 {
     public class CoolpropJsFluid
     {
-		IJSObjectReference _CoolpropJS { get; set; }
+		IJSInProcessObjectReference _CoolpropJS { get; set; }
 		private Density _Density = Density.Zero;
-		Density Density { get => _Density; set => _Density = value; }
+		public Density Density { get => _Density; set => _Density = value; }
 		private Enthalpy enthalpy = Enthalpy.Zero;
-		Enthalpy Enthalpy { get => enthalpy; set => enthalpy = value; }
+		public Enthalpy Enthalpy { get => enthalpy; set => enthalpy = value; }
 		private Temperature _Temperature = Temperature.Zero;
-		Temperature Temperature { get => _Temperature; set => _Temperature = value; }
+		public Temperature Temperature { get => _Temperature; set => _Temperature = value; }
 		private Pressure _Pressure = Pressure.Zero;
-		Pressure Pressure { get => _Pressure; set => _Pressure = value; }
-		private Entropy _Entropy = Entropy.Zero;
-		Entropy Entropy { get => _Entropy; set => _Entropy = value; }
+		public Pressure Pressure { get => _Pressure; set => _Pressure = value; }
+		private SpecificEntropy _Entropy = SpecificEntropy.Zero;
+		public SpecificEntropy Entropy { get => _Entropy; set => _Entropy = value; }
 
 		private FluidNames _FluidName = FluidNames.Ammonia;
+		public FluidNames FluidName { get => _FluidName; set => _FluidName = value; }
 
-
-		FluidNames FluidName { get => _FluidName; set => _FluidName = value; }
-
-        public CoolpropJsFluid(IJSObjectReference coolprop)
+        public CoolpropJsFluid(IJSInProcessObjectReference coolprop)
         {
             _CoolpropJS = coolprop;
         }
 
         public void UpdatePH(Pressure P, Enthalpy H)
         {
-            double T = _CoolpropJS.InvokeAsync<double>("PropsSI", 'T', 'P', P.Pascal, 'H', H.JoulePerKilogram, FluidName.ToString()).Result;
-			double D = _CoolpropJS.InvokeAsync<double>("PropsSI", 'D', 'P', P.Pascal, 'H', H.JoulePerKilogram, FluidName.ToString()).Result;
-			double S = _CoolpropJS.InvokeAsync<double>("PropsSI", 'S', 'P', P.Pascal, 'H', H.JoulePerKilogram, FluidName.ToString()).Result;
+			double T = _CoolpropJS.Invoke<double>("PropsSI", 'T', 'P', P.Pascal, 'H', H.JoulePerKilogram, FluidName.ToString());
+			double D = _CoolpropJS.Invoke<double>("PropsSI", 'D', 'P', P.Pascal, 'H', H.JoulePerKilogram, FluidName.ToString());
+			double S = _CoolpropJS.Invoke<double>("PropsSI", 'S', 'P', P.Pascal, 'H', H.JoulePerKilogram, FluidName.ToString());
 			Temperature = Temperature.FromKelvin(T);
 			Density = Density.FromKilogramPerCubicMeter(D);
-			Entropy = Entropy.FromJoulePerKelvin(S);
+			Entropy = SpecificEntropy.FromJoulePerKilogramKelvin(S);
 			Pressure = P;
 			Enthalpy = H;
 		}
 
-		public void UpdatePS(Pressure P, Entropy S)
+		public void UpdatePS(Pressure P, SpecificEntropy S)
 		{
-			double T = _CoolpropJS.InvokeAsync<double>("PropsSI", 'T', 'P', P.Pascal, 'S', S.JoulePerKelvin, FluidName.ToString()).Result;
-			double D = _CoolpropJS.InvokeAsync<double>("PropsSI", 'D', 'P', P.Pascal, 'S', S.JoulePerKelvin, FluidName.ToString()).Result;
-			double H = _CoolpropJS.InvokeAsync<double>("PropsSI", 'H', 'P', P.Pascal, 'S', S.JoulePerKelvin, FluidName.ToString()).Result;
+			double T = _CoolpropJS.Invoke<double>("PropsSI", 'T', 'P', P.Pascal, 'S', S.JoulePerKilogramKelvin, FluidName.ToString());
+			double D = _CoolpropJS.Invoke<double>("PropsSI", 'D', 'P', P.Pascal, 'S', S.JoulePerKilogramKelvin, FluidName.ToString());
+			double H = _CoolpropJS.Invoke<double>("PropsSI", 'H', 'P', P.Pascal, 'S', S.JoulePerKilogramKelvin, FluidName.ToString());
 			Temperature = Temperature.FromKelvin(T);
 			Density = Density.FromKilogramPerCubicMeter(D);
-			Enthalpy = Enthalpy.FromJoulePerKilogram(S);
+			Enthalpy = Enthalpy.FromJoulePerKilogram(H);
 			Pressure = P;
 			Entropy = S;
 		}
 
 		public void UpdatePT(Pressure P, Temperature T)
 		{
-			double S = _CoolpropJS.InvokeAsync<double>("PropsSI", 'S', 'P', P.Pascal, 'T', T.Kelvin, FluidName.ToString()).Result;
-			double D = _CoolpropJS.InvokeAsync<double>("PropsSI", 'D', 'P', P.Pascal, 'T', T.Kelvin, FluidName.ToString()).Result;
-			double H = _CoolpropJS.InvokeAsync<double>("PropsSI", 'H', 'P', P.Pascal, 'T', T.Kelvin, FluidName.ToString()).Result;
-			Entropy = Entropy.FromJoulePerKelvin(S);
+			double S = _CoolpropJS.Invoke<double>("PropsSI", 'S', 'P', P.Pascal, 'T', T.Kelvin, FluidName.ToString());
+			double D = _CoolpropJS.Invoke<double>("PropsSI", 'D', 'P', P.Pascal, 'T', T.Kelvin, FluidName.ToString());
+			double H = _CoolpropJS.Invoke<double>("PropsSI", 'H', 'P', P.Pascal, 'T', T.Kelvin, FluidName.ToString());
+			Entropy = SpecificEntropy.FromJoulePerKilogramKelvin(S);
 			Density = Density.FromKilogramPerCubicMeter(D);
-			Enthalpy = Enthalpy.FromJoulePerKilogram(S);
+			Enthalpy = Enthalpy.FromJoulePerKilogram(H);
 			Pressure = P;
 			Temperature = T;
+		}
+
+		public Temperature GetSatTemperature(Pressure P)
+		{
+			double T = _CoolpropJS.Invoke<double>("PropsSI", 'T', 'P', P.Pascal, 'X', 0, FluidName.ToString());
+			return Temperature.FromKelvins(T);
 		}
 	}
 

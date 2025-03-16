@@ -1,8 +1,7 @@
 ﻿
-namespace CycleCalculatorWeb.CycleModel.Model.Attributes
+namespace CycleCalculator.CycleModel.Model.Attributes
 {
-	[AttributeUsage(AttributeTargets.Property)
-	]
+	[AttributeUsage(AttributeTargets.Property)]
 	public class ComponentParameter : Attribute
 	{
 		public string Name;

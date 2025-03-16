@@ -1,4 +1,4 @@
-﻿using CycleCalculatorWeb.CycleModel.Model.IO;
+﻿using CycleCalculator.CycleModel.Model.IO;
 using CycleCalculatorWeb.GUI.DragDropComponents;
 using System.ComponentModel.DataAnnotations;
 using System.Text;

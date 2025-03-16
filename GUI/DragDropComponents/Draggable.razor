@@ -1,7 +1,7 @@
 ﻿@using CycleCalculatorWeb.GUI.Services
 @inject IMouseService mouseSrv
  
-<g transform="translate(@x, @y) rotate(@_rotation 75 50)" cursor=@cursor @onclick=OnClick @onclick:stopPropagation @oncontextmenu=OnClick @oncontextmenu:preventDefault="true" @onmousedown=OnDown
+<g transform="translate(@x, @y) rotate(@_rotation 75 50)" @onclick=OnClick @onclick:stopPropagation @oncontextmenu=OnClick @oncontextmenu:preventDefault="true" @onmousedown=OnDown
 @onmousedown:stopPropagation="true">
     @ChildContent
 </g>
@@ -48,14 +48,11 @@
         base.OnInitialized();
     }
 
-
-    string cursor = "grab";
     bool _isDown;
     bool isDown {
         get { return _isDown; }
         set {
             _isDown = value;
-            cursor = _isDown ? "grabbing" : "grab";
         }
     }
 

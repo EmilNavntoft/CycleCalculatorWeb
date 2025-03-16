@@ -1,20 +1,20 @@
 ﻿using Accord.Math;
-using CycleCalculatorWeb.CycleModel.Exceptions;
-using CycleCalculatorWeb.CycleModel.Model.IO;
+using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculator.CycleModel.Model.IO;
 using EngineeringUnits;
+using Microsoft.JSInterop;
+using SharpFluids;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using static CycleCalculatorWeb.CycleModel.Model.IO.PortIdentifier;
+using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 
-namespace CycleCalculatorWeb.CycleModel.Model
+namespace CycleCalculator.CycleModel.Model
 {
     public class TeeSection : CycleComponent
     {
-        [Editable(false)]
-        double relativeDifferenceLimit = 0.00001;
 		[Editable(false)]
 		public Port PortC { get; set; }
-        public TeeSection(string name) : base(name)
+        public TeeSection(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);
@@ -34,7 +34,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
             foreach (Port port in Ports.Values)
             {
                 port.Pressure = cascadedPort.Connection.Pressure;
-                if (port != cascadedPort)
+                if (port != cascadedPort && port.Pressure != port.Connection.Pressure)
                 {
                     port.Connection.Component.ReceiveAndCascadePressure(port.Connection);
                 }
@@ -113,13 +113,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
                 return;
             }
 
-            if (IsMassBalanceEquationIndeterminate())
-            {
-                //Guess a split for now, for cases where only the downstream port is known
-                SplitIndeterminatePortsEqually();
-            }
-
-            //There can only be one unknown port at this point, since indeterminate state has already been checked
             unknownPorts = GetUnknownPorts();
             if (unknownPorts.Count == 1)
             {
@@ -138,42 +131,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
             {
                 port.Connection.Component.ReceiveAndCascadeMassFlow(port.Connection, false);
             }
-        }
-
-        public override double[] GetMassBalanceEquations(double[] x)
-        {
-            double[] equations =
-            [
-                x[PortA.MdotIdent] + x[PortB.MdotIdent] + x[PortC.MdotIdent],
-                x[PortA.PIdent] - x[PortB.PIdent],
-                x[PortA.PIdent] - x[PortC.PIdent]
-            ];
-            
-            if (PortA.Connection.Identifier == B)
-            {
-                double[] portAConnectionEquations = [
-                    x[PortA.MdotIdent] + x[PortA.Connection.MdotIdent],
-                    x[PortA.PIdent] - x[PortA.Connection.PIdent]
-                    ];
-                equations = equations.Concat(portAConnectionEquations).ToArray();
-            }
-            if (PortB.Connection.Identifier == B)
-            {
-                double[] portBConnectionEquations = [
-                    x[PortB.MdotIdent] + x[PortB.Connection.MdotIdent],
-                    x[PortB.PIdent] - x[PortB.Connection.PIdent]
-                    ];
-                equations = equations.Concat(portBConnectionEquations).ToArray();
-            }
-            if (PortC.Connection.Identifier == B)
-            {
-                double[] portCConnectionEquations = [
-                    x[PortC.MdotIdent] + x[PortC.Connection.MdotIdent],
-                    x[PortC.PIdent] - x[PortC.Connection.PIdent]
-                    ];
-                equations = equations.Concat(portCConnectionEquations).ToArray();
-            }
-            return equations;
         }
 
         public override void CalculatePressureDrop()
@@ -239,119 +196,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
             foreach (var port in downstreamPorts)
             {
                 port.Connection.Component.CalculateHeatBalanceEquation();
-            }
-        }
-
-        public bool HasMismatchedUpstreamPressures()
-        {
-            var upstreamPorts = Ports.Values.Where(port => port.MassFlow >= MassFlow.Zero).ToList();
-            if (upstreamPorts.Count < 2) return false; //There must be two upstream ports for them to be able to be mismatched
-            if (upstreamPorts.Any(port => port.IsFixedMassFlow)) return false; //If any of these ports are fixed, there is no room to adjust flows.
-
-            
-            double relativeDifference = (upstreamPorts[0].Pressure - upstreamPorts[1].Pressure).Abs() / upstreamPorts[0].Pressure;
-            bool hasMismatchedLocalPorts = relativeDifference > relativeDifferenceLimit;
-
-            bool hasMismatchedConnectedPorts = upstreamPorts.Any(port => 
-            (port.Connection.Pressure - port.Pressure).Abs() / port.Connection.Pressure > relativeDifferenceLimit);
-
-            return hasMismatchedLocalPorts || hasMismatchedConnectedPorts;
-        }
-
-        public void AdjustUpstreamFlowsToMismatchedPressures(Dictionary<PortIdentifier, MassFlow> upstreamPortMassFlowPairs)
-        {
-            int knownUpstreamPorts = GetUpstreamPorts().Count;
-            if (knownUpstreamPorts != 0)
-            {
-                //If one of the upstream ports have already been set, there is no room to adjust upstream flows
-                if (knownUpstreamPorts == 1 && GetDownstreamPorts().Count == 1)
-                {
-                    CalculateMassBalanceEquation();
-                }
-                return;
-            }
-
-            foreach (var pair in upstreamPortMassFlowPairs)
-            {
-                if (Ports[pair.Key].MassFlow == MassFlow.NaN)
-                {
-                    Ports[pair.Key].MassFlow = pair.Value;
-                }
-            }
-
-            var upstreamPorts = GetUpstreamPorts();
-            if (upstreamPorts.Count < 2) return;
-            if (upstreamPorts.Any(port => port.IsFixedMassFlow)) return;
-
-            var downstreamPorts = GetDownstreamPorts();
-
-            MassFlow totalUpstreamFlow = MassFlow.Zero;
-            upstreamPorts.ForEach(port => totalUpstreamFlow += port.MassFlow);
-
-            var unknownPorts = GetUnknownPorts();
-            if (downstreamPorts.Count == 1)
-            {
-                //Account for change in downstream flow due to adjustment of downstream tees.
-                MassFlow totalActualUpstreamFlow = MassFlow.Zero - downstreamPorts[0].MassFlow;
-                double previousToActualFlowRatio = totalActualUpstreamFlow.KilogramPerSecond / totalUpstreamFlow.KilogramPerSecond;
-                upstreamPorts.ForEach(port => port.MassFlow *= previousToActualFlowRatio);
-            } 
-            else if (unknownPorts.Count == 1)
-            {
-                //This unknown port must be the downstream port
-                unknownPorts[0].MassFlow = MassFlow.Zero - totalUpstreamFlow;
-            }
-
-            upstreamPorts.ForEach(port => port.Pressure = port.Connection.Pressure); //Retrieve connected port's pressure, as it might mismatch.
-
-            double relativeDifference = (upstreamPorts[0].Pressure.Bar - upstreamPorts[1].Pressure.Bar)/ Math.Max(upstreamPorts[0].Pressure.Bar, upstreamPorts[1].Pressure.Bar);
-            
-            if (Math.Abs(relativeDifference) < relativeDifferenceLimit) return;
-
-
-            double change = 0.05;
-            double limit = totalUpstreamFlow.KilogramPerSecond / 4;
-            if (relativeDifference > 0)
-            {
-                change = totalUpstreamFlow.KilogramPerSecond * relativeDifference;
-                change = Math.Min(change, limit);
-            }
-            else
-            {
-                change = totalUpstreamFlow.KilogramPerSecond * relativeDifference;
-                change = Math.Max(change, -limit);
-            }
-
-            upstreamPorts[0].MassFlow += MassFlow.FromKilogramPerSecond(change);
-            upstreamPorts[1].MassFlow -= MassFlow.FromKilogramPerSecond(change);
-
-            var knownPorts = Ports.Values.ToList().FindAll(port => port.MassFlow != MassFlow.NaN);
-            foreach (var port in upstreamPorts)
-            {
-                port.Connection.Component.ReceiveAndCascadeMassFlow(port.Connection, false);
-            }
-            return;
-        }
-
-        public double GetRelativePressureDifference()
-        {
-            var upstreamPorts = GetUpstreamPorts();
-            if (upstreamPorts.Count == 2)
-            {
-                return (upstreamPorts[0].Pressure.Bar - upstreamPorts[1].Pressure.Bar) / Math.Max(upstreamPorts[0].Pressure.Bar, upstreamPorts[1].Pressure.Bar);
-            } else
-            {
-                return 0;
-            }
-        }
-
-        public void CascadeKnownMassFlows()
-        {
-            if (GetUnknownPorts().Count != 0) return;
-
-            foreach (Port port in Ports.Values)
-            {
-                port.Connection.Component.ReceiveAndCascadeMassFlow(port.Connection, false);
             }
         }
 
@@ -433,14 +277,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
             {
                 port.Connection.Component.CascadeMassBalanceCalculation();
             }
-        }
-
-        private void SplitIndeterminatePortsEqually()
-        {
-            var unknownDownstreamPorts = Ports.Values.ToList().FindAll(port => port.MassFlow == MassFlow.NaN);
-            var upstreamPorts = GetUpstreamPorts();
-            if (upstreamPorts.Count == 0) return;
-            unknownDownstreamPorts.ForEach(port => port.MassFlow = MassFlow.Zero - upstreamPorts[0].MassFlow / 2);
         }
     }
 }

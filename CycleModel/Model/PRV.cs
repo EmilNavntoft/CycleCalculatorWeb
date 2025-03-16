@@ -1,11 +1,12 @@
-﻿using CycleCalculatorWeb.CycleModel.Model.IO;
-using static CycleCalculatorWeb.CycleModel.Model.IO.PortIdentifier;
+﻿using CycleCalculator.CycleModel.Model.IO;
+using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 using EngineeringUnits;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using CycleCalculatorWeb.CycleModel.Exceptions;
+using CycleCalculator.CycleModel.Exceptions;
+using Microsoft.JSInterop;
 
-namespace CycleCalculatorWeb.CycleModel.Model
+namespace CycleCalculator.CycleModel.Model
 {
     public class PRV : CycleComponent
     {
@@ -25,7 +26,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
 			}
 		}
 
-		public PRV(string name) : base(name)
+		public PRV(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);
@@ -49,18 +50,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
             downstreamPort.Pressure = OutletPressure;
 
             TransferState();
-        }
-
-        public override double[] GetMassBalanceEquations(double[] x)
-        {
-            double[] equations =
-            [
-                x[PortA.MdotIdent] + x[PortB.MdotIdent],
-                x[PortA.MdotIdent] + x[PortA.Connection.MdotIdent],
-                x[PortA.PIdent] - x[PortA.Connection.PIdent],
-                x[PortB.PIdent] - OutletPressure.Pascal
-            ];
-            return equations;
         }
 
         public override void CalculateHeatBalanceEquation()

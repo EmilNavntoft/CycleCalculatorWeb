@@ -1,7 +1,7 @@
-﻿@using CycleCalculatorWeb.CycleModel.Model
-@using CycleCalculatorWeb.CycleModel.Model.Enums
+﻿@using CycleCalculator.CycleModel.Model
+@using CycleCalculator.CycleModel.Model.Enums
 <div class="sideBar">
-	<h5 class="title">Component Selector</h5>
+	<h5 class="title">Components</h5>
 	<div class="container">
 		<button class="addComponentButton" @onclick=@(_ => AddComponentClicked(CycleComponentType.Compressor))>
 			<svg class="buttonIcon">
@@ -15,6 +15,30 @@
 			</svg>
 			<h6 class="componentName">PRV</h6>
 		</button>
+		<button class="addComponentButton" @onclick=@(_ => AddComponentClicked(CycleComponentType.TemperatureBoundary))>
+			<svg class="buttonIcon">
+				<CycleCalculatorWeb.GUI.SVG.InlineBoundary Xoffset="-50" Yoffset="-25" />
+			</svg>
+			<h6 class="componentName">Temperature Boundary</h6>
+		</button>
+		<button class="addComponentButton" @onclick=@(_ => AddComponentClicked(CycleComponentType.HeatFlowBoundary))>
+			<svg class="buttonIcon">
+				<CycleCalculatorWeb.GUI.SVG.InlineBoundary Xoffset="-50" Yoffset="-25" />
+			</svg>
+			<h6 class="componentName">Heat flow Boundary</h6>
+		</button>
+		<button class="addComponentButton" @onclick=@(_ => AddComponentClicked(CycleComponentType.TeeSection))>
+			<svg class="buttonIcon">
+				<CycleCalculatorWeb.GUI.SVG.Tee Xoffset="-50" Yoffset="-25" />
+			</svg>
+			<h6 class="componentName">Tee</h6>
+		</button>
+		<button class="addComponentButton" @onclick=@(_ => AddComponentClicked(CycleComponentType.Sensor))>
+			<svg class="buttonIcon">
+				<CycleCalculatorWeb.GUI.SVG.Sensor Xoffset="-50" Yoffset="-25" />
+			</svg>
+			<h6 class="componentName">Sensor</h6>
+		</button>
 	</div>
 </div>
 
@@ -23,8 +47,8 @@
 	[Parameter]
 	public EventCallback<CycleComponentType> OnAddComponentClicked { get; set; }
 
-	private async void AddComponentClicked(CycleComponentType type)
+	private void AddComponentClicked(CycleComponentType type)
 	{
-		await OnAddComponentClicked.InvokeAsync(type);
+		OnAddComponentClicked.InvokeAsync(type);
 	}
 }

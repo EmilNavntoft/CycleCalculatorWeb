@@ -1,8 +1,8 @@
-﻿using CycleCalculatorWeb.CycleModel.Exceptions;
+﻿using CycleCalculator.CycleModel.Exceptions;
 using EngineeringUnits;
 using SharpFluids;
 
-namespace CycleCalculatorWeb.CycleModel.Model.IO
+namespace CycleCalculator.CycleModel.Model.IO
 {
     public class Port
     {
@@ -63,20 +63,15 @@ namespace CycleCalculatorWeb.CycleModel.Model.IO
             }
         }
 
-        private Port? _connection;
+        private Port? _Connection;
         public Port Connection { 
             get
             {
-                if (_connection == null)
-                {
-                    throw new SolverException($"Port {Identifier} of {Component.Name} is not connected");
-                }
-
-                return _connection;
+                return _Connection;
             }
             private set
             {
-                _connection = value;
+                _Connection = value;
             }
         }
         public CycleComponent Component { get; private set; }

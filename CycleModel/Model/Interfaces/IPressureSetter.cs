@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CycleCalculatorWeb.CycleModel.Model.Interfaces
+namespace CycleCalculator.CycleModel.Model.Interfaces
 {
     public interface IPressureSetter
     {

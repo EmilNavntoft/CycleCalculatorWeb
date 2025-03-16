@@ -4,14 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CycleCalculatorWeb.CycleModel.Model.Enums
+namespace CycleCalculator.CycleModel.Model.Enums
 {
 	public enum CycleComponentType
 	{
 		Compressor,
 		Valve,
-		InlineBoundary,
+		TemperatureBoundary,
+		HeatFlowBoundary,
 		TeeSection,
-		Pipe
+		Pipe,
+		Sensor
 	}
 }

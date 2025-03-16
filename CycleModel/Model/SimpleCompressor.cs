@@ -1,15 +1,14 @@
-﻿using static CycleCalculatorWeb.CycleModel.Model.IO.PortIdentifier;
+﻿using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 using EngineeringUnits;
-using CycleCalculatorWeb.CycleModel.Model.IO;
-using CycleCalculatorWeb.CycleModel.Model.Interfaces;
-using CycleCalculatorWeb.CycleModel.Model.Attributes;
+using CycleCalculator.CycleModel.Model.IO;
+using CycleCalculator.CycleModel.Model.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
-using CycleCalculatorWeb.CycleModel.Exceptions;
-using EngineeringUnits.Units;
-namespace CycleCalculatorWeb.CycleModel.Model
+using CycleCalculator.CycleModel.Exceptions;
+using Microsoft.JSInterop;
+namespace CycleCalculator.CycleModel.Model
 {
-    class SimpleCompressor : CycleComponent, IPressureSetter, IMassFlowSetter
+    class SimpleCompressor : CycleComponent, IPressureSetter, IMassFlowSetter, IPowerConsumer
     {
 		[DisplayName("Isentropic efficiency")]
 		public double Efficiency { get; set; } = 0.7;
@@ -18,9 +17,10 @@ namespace CycleCalculatorWeb.CycleModel.Model
 		[Editable(false)]
 		public MassFlow NominalMassFlowError { get; private set; } = MassFlow.Zero;
         [Editable(false)]
-        public Pressure DischargePressure { get; set; } = Pressure.FromBar(1);
-
-        [DisplayName("Discharge pressure [bar]")]
+        public Power PowerConsumption { get; set; } = Power.NaN;
+		[Editable(false)]
+		public Pressure DischargePressure { get; set; } = Pressure.FromBar(5);
+		[DisplayName("Discharge pressure [bar]")]
 		public double DischargePressureDouble
 		{
 			get
@@ -46,7 +46,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
 			}
 		}
 
-		public SimpleCompressor(string name) : base(name)
+		public SimpleCompressor(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);
@@ -67,18 +67,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
             TransferState();
         }
 
-        public override double[] GetMassBalanceEquations(double[] x)
-        {
-            double[] equations =
-            [
-                x[PortA.MdotIdent] - NominalMassFlow.KilogramPerSecond,
-                x[PortB.MdotIdent] + NominalMassFlow.KilogramPerSecond,
-                x[PortA.PIdent] - x[PortA.Connection.PIdent],
-                x[PortB.PIdent] - DischargePressure.Pascal
-            ];
-            return equations;
-        }
-
         public override void CalculatePressureDrop()
         {
             return;
@@ -96,12 +84,14 @@ namespace CycleCalculatorWeb.CycleModel.Model
             Enthalpy specificIsentropicWork = isentropicOutletEnthalpy - upstreamPort.Enthalpy;
             Enthalpy actualOutletEnthalpy = upstreamPort.Enthalpy + (specificIsentropicWork / Efficiency);
 
-            Fluid.UpdatePH(DischargePressure, actualOutletEnthalpy);
+			Fluid.UpdatePH(DischargePressure, actualOutletEnthalpy);
             downstreamPort.Temperature = Fluid.Temperature;
             downstreamPort.Pressure = DischargePressure;
             downstreamPort.Enthalpy = actualOutletEnthalpy;
 
-            TransferState();
+            PowerConsumption = upstreamPort.MassFlow * (downstreamPort.Enthalpy - upstreamPort.Enthalpy);
+
+			TransferState();
             GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation();
         }
 
@@ -120,9 +110,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
 
             port.Temperature = port.Connection.Temperature;
             port.Enthalpy = port.Connection.Enthalpy;
-
-            var otherIdentifier = port.Identifier == A ? B : A;
-            var otherPort = Ports[otherIdentifier];
         }
 
         public override void ReceiveAndCascadeMassFlow(Port port, bool setAsFixedMassFlow)

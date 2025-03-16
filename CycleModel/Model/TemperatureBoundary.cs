@@ -1,31 +1,44 @@
-﻿using CycleCalculatorWeb.CycleModel.Model.IO;
-using static CycleCalculatorWeb.CycleModel.Model.IO.PortIdentifier;
+﻿using CycleCalculator.CycleModel.Model.IO;
+using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 using EngineeringUnits;
-using CycleCalculatorWeb.CycleModel.Model.Interfaces;
+using CycleCalculator.CycleModel.Model.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
-using CycleCalculatorWeb.CycleModel.Exceptions;
+using CycleCalculator.CycleModel.Exceptions;
+using Microsoft.JSInterop;
 
-namespace CycleCalculatorWeb.CycleModel.Model
+namespace CycleCalculator.CycleModel.Model
 {
-    public class TemperatureBoundary : CycleComponent, ITemperatureOrEnthalpySetter
-    {
-        [Editable(false)]
-        public Temperature OutletTemperature { get; set; } = Temperature.FromDegreeCelsius(10);
+    public class TemperatureBoundary : CycleComponent, ITemperatureOrEnthalpySetter, IHeatFlowExchanger
+	{
+        public enum TemperatureBoundaryMode
+		{
+            OutletTemperature,
+            Superheating,
+            Subcooling
+        }
 
-		[DisplayName("Outlet temperature [°C]")]
-		public double OutletTemperatureDouble
+        public TemperatureBoundaryMode Mode { get; set; } = TemperatureBoundaryMode.OutletTemperature;
+
+		[Editable(false)]
+		public Power HeatFlowExchanged { get; set; } = Power.NaN;
+
+		[Editable(false)]
+        public Temperature Temperature { get; set; } = Temperature.FromDegreeCelsius(10);
+
+		[DisplayName("Temperature [°C]")]
+		public double TemperatureDouble
 		{
 			get
 			{
-				return OutletTemperature.DegreeCelsius;
+				return Temperature.DegreeCelsius;
 			}
 			set
 			{
-				OutletTemperature = Temperature.FromDegreeCelsius(value);
+				Temperature = Temperature.FromDegreeCelsius(value);
 			}
 		}
-		public TemperatureBoundary(string name) : base(name)
+		public TemperatureBoundary(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);
@@ -43,27 +56,31 @@ namespace CycleCalculatorWeb.CycleModel.Model
             TransferState();
         }
 
-        public override double[] GetMassBalanceEquations(double[] x)
-        {
-            double[] equations =
-            [
-                x[PortA.MdotIdent] + x[PortB.MdotIdent],
-                x[PortA.MdotIdent] + x[PortA.Connection.MdotIdent],
-                x[PortA.PIdent] - x[PortA.Connection.PIdent],
-                x[PortB.PIdent] - x[PortA.PIdent]
-            ];
-            return equations;
-        }
-
-
         public override void CalculateHeatBalanceEquation()
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
-            Fluid.UpdatePT(upstreamPort.Pressure, OutletTemperature);
+
+            
+
+			if (Mode == TemperatureBoundaryMode.OutletTemperature)
+			{
+				downstreamPort.Temperature = Temperature;
+			}
+			else if (Mode == TemperatureBoundaryMode.Superheating)
+			{
+				downstreamPort.Temperature = Fluid.GetSatTemperature(upstreamPort.Pressure) + Temperature.FromKelvin(Temperature.DegreeCelsius);
+			}
+			else if (Mode == TemperatureBoundaryMode.Subcooling)
+			{
+				downstreamPort.Temperature = Fluid.GetSatTemperature(upstreamPort.Pressure) - Temperature.FromKelvin(Temperature.DegreeCelsius);
+			}
+
+			Fluid.UpdatePT(upstreamPort.Pressure, downstreamPort.Temperature);
             downstreamPort.Enthalpy = Fluid.Enthalpy;
-            downstreamPort.Temperature = Fluid.Temperature;
-        }
+
+            HeatFlowExchanged = upstreamPort.MassFlow * (downstreamPort.Enthalpy - upstreamPort.Enthalpy);
+		}
 
         public override bool IsMassBalanceEquationIndeterminate()
         {
@@ -83,10 +100,23 @@ namespace CycleCalculatorWeb.CycleModel.Model
             var otherIdentifier = port.Identifier == A ? B : A;
             var otherPort = Ports[otherIdentifier];
             otherPort.Pressure = port.Connection.Pressure;
-            otherPort.Temperature = OutletTemperature;
+            if (Mode == TemperatureBoundaryMode.OutletTemperature)
+            {
+				otherPort.Temperature = Temperature;
+			} 
+            else if (Mode == TemperatureBoundaryMode.Superheating)
+            {
+                otherPort.Temperature = Fluid.GetSatTemperature(port.Pressure) + Temperature.FromKelvin(Temperature.DegreeCelsius);
+			} 
+            else if (Mode == TemperatureBoundaryMode.Subcooling)
+            {
+				otherPort.Temperature = Fluid.GetSatTemperature(port.Pressure) - Temperature.FromKelvin(Temperature.DegreeCelsius);
+			}
+            
+
             if (port.Connection.Pressure != Pressure.NaN)
             {
-                Fluid.UpdatePT(port.Connection.Pressure, OutletTemperature);
+                Fluid.UpdatePT(port.Connection.Pressure, Temperature);
                 otherPort.Enthalpy = Fluid.Enthalpy;
             }
         }

@@ -1,13 +1,12 @@
-﻿using CycleCalculatorWeb.CycleModel.Model.IO;
-using static CycleCalculatorWeb.CycleModel.Model.IO.PortIdentifier;
+﻿using CycleCalculator.CycleModel.Model.IO;
+using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 using EngineeringUnits;
-using SharpFluids;
 using System.ComponentModel.DataAnnotations;
-using CycleCalculatorWeb.CycleModel.Exceptions;
-using Microsoft.AspNetCore.Components;
+using CycleCalculator.CycleModel.Exceptions;
 using Microsoft.JSInterop;
+using CycleCalculatorWeb.CoolpropJsInterop;
 
-namespace CycleCalculatorWeb.CycleModel.Model
+namespace CycleCalculator.CycleModel.Model
 {
     public abstract class CycleComponent
     {
@@ -17,10 +16,10 @@ namespace CycleCalculatorWeb.CycleModel.Model
 		[Editable(false)]
 		public Port PortB { get; set; }
 		[Editable(false)]
-		public Fluid Fluid { get; private set; } = new Fluid(FluidList.Ammonia);
+		public CoolpropJsFluid Fluid { get; private set; }
 
-        private FluidList _FluidType = FluidList.Ammonia;
-		public FluidList FluidType
+        private FluidNames _FluidType = FluidNames.Ammonia;
+		public FluidNames FluidType
         {
             get
             {
@@ -29,17 +28,20 @@ namespace CycleCalculatorWeb.CycleModel.Model
             set
             {
                 _FluidType = value;
-				Fluid.SetNewMedia(value);
+				Fluid.FluidName = _FluidType;
+
+				StartCascadeFluidTypeChange();
 			}
         }
 
 		[Editable(false)]
 		public Dictionary<PortIdentifier, Port> Ports { get; private set; } = new Dictionary<PortIdentifier, Port>();
 
-		public CycleComponent(string name)
+		public CycleComponent(string name, IJSInProcessObjectReference coolprop)
         {
             Name = name;
-        }
+            Fluid = new CoolpropJsFluid(coolprop);
+		}
 
         public abstract void CalculateMassBalanceEquation();
 
@@ -53,9 +55,6 @@ namespace CycleCalculatorWeb.CycleModel.Model
             TransferState();
             downstreamPort.Connection.Component.CalculatePressureDrop();
         }
-
-        public abstract double[] GetMassBalanceEquations(double[] x);
-
         public virtual bool IsMassBalanceEquationIndeterminate()
         {
             return Ports.Values.All(port => port.MassFlow == MassFlow.NaN);
@@ -140,6 +139,33 @@ namespace CycleCalculatorWeb.CycleModel.Model
             GetDownstreamPort().Connection.Component.CascadeMassBalanceCalculation();
         }
 
+        public virtual void StartCascadeFluidTypeChange()
+        {
+            foreach (var port in Ports.Values)
+            {
+                if (port.Connection != null && port.Connection.Component.FluidType != FluidType)
+                {
+                    port.Connection.Component.CascadeFluidTypeChange(FluidType);
+				}
+            }
+        }
+
+        public virtual void CascadeFluidTypeChange(FluidNames fluidName)
+        {
+            if (FluidType != fluidName)
+            {
+                FluidType = fluidName;
+				foreach (var port in Ports.Values)
+				{
+					if (port.Connection != null && port.Connection.Component.FluidType != FluidType)
+					{
+						port.Connection.Component.CascadeFluidTypeChange(FluidType);
+					}
+				}
+			}
+        }
+
+
         public virtual Port GetUpstreamPort()
         {
             Port upstreamPort = Ports.Values.First(port => port.MassFlow > MassFlow.Zero) ?? throw new SolverException($"Upstream ports for {Name} are undetermined");
@@ -150,7 +176,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
         public virtual Port GetDownstreamPort()
         {
             Port downstreamPort = Ports.Values.First(port => port.MassFlow == MassFlow.NaN || port.MassFlow < MassFlow.Zero)
-                ?? throw new SolverException($"Upstream ports for {Name} are undetermined");
+                ?? throw new SolverException($"Downstream ports for {Name} are undetermined");
 
             return downstreamPort;
         }

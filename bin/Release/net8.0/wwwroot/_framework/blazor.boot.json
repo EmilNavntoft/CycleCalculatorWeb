@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "CycleCalculatorWeb",
   "resources": {
-    "hash": "sha256-MLK5yO3whBzN7Sui/cXstmeAoSzTKitkxrsfNsndomo=",
+    "hash": "sha256-d4eKB/dzsOOUwN9pY8jggFA1RAR4Ft17jsUEZgGF5Vk=",
     "jsModuleNative": {
       "dotnet.native.8.0.12.hqjokfk1uf.js": "sha256-B6DNRvFeCUi3jbx9uKpuj+hV9cN0KG4RdZj1FgBZwj8="
     },
@@ -220,10 +220,10 @@
       "mscorlib.wasm": "sha256-QoC5hTKpDNO6efLnEvYwV9OJBXvYRq8/1yGhNZKiNCw=",
       "netstandard.wasm": "sha256-JT2F4bYWJpaSGq+iD0ITLpWxsDhMUjhqje9RpBtTg7w=",
       "System.Private.CoreLib.wasm": "sha256-fvIPBcvgvsRuWrKi2LGQsLYvcKUSnyIuBUsE3LJu/0Y=",
-      "CycleCalculatorWeb.wasm": "sha256-eNTSl3mWYxq+fwLX+SQMFlj8vjx110nGUag6qXqpMvY="
+      "CycleCalculatorWeb.wasm": "sha256-zQ4T1Es789HkxBm9cPUNpV+sp8FaKkGBpgt4/bdEQ1k="
     },
     "pdb": {
-      "CycleCalculatorWeb.pdb": "sha256-0d9PqeJcpqZJkLS30oVBqxxdOr2Y4oyQHtZ4Y6Fh5M4="
+      "CycleCalculatorWeb.pdb": "sha256-rJdHj/UbIuoaujxTOik2OBVRF3PDrm/isEJfPAF/As0="
     },
     "satelliteResources": {
       "cs": {
