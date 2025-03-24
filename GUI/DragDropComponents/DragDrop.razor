@@ -1,6 +1,7 @@
 ﻿@using CycleCalculator.CycleModel.Model
 @using CycleCalculator.CycleModel.Model.IO
 @using CycleCalculator.CycleModel.Model.Interfaces
+@using CycleCalculatorWeb.CycleModel.Model
 @using CycleCalculatorWeb.GUI.SVG
 @using System.ComponentModel.DataAnnotations
 @using Meziantou.AspNetCore.Components
@@ -35,6 +36,10 @@
 	{
 		<Sensor />
 	}
+	@if (_CycleComponent is PlateHeatExchanger)
+	{
+		<PHE />
+	}
 
 	@if (CycleComponent is CycleCalculator.CycleModel.Model.Sensor && CycleComponent.PortA.Temperature != EngineeringUnits.Temperature.NaN)
 	{
@@ -63,6 +68,13 @@
 {
 	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75-7*Math.Cos(_angle*Math.PI/180)) Y=(Y+50-7*Math.Sin(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortADirection PortIdentifier="@PortIdentifier.A" />
 	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75+7*Math.Cos(_angle*Math.PI/180)) Y=(Y+50+7*Math.Sin(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortBDirection PortIdentifier="@PortIdentifier.B" />
+}
+else if (CycleComponent is PlateHeatExchanger)
+{
+	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75-25*Math.Cos(_angle*Math.PI/180)+20*Math.Sin(_angle*Math.PI/180)) Y=(Y+50-25*Math.Sin(_angle*Math.PI/180)+20*Math.Cos(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortADirection PortIdentifier="@PortIdentifier.A" />
+	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75+25*Math.Cos(_angle*Math.PI/180)+20*Math.Sin(_angle*Math.PI/180)) Y=(Y+50+25*Math.Sin(_angle*Math.PI/180)+20*Math.Cos(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortBDirection PortIdentifier="@PortIdentifier.B" />
+	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75-25*Math.Cos(_angle*Math.PI/180)-20*Math.Sin(_angle*Math.PI/180)) Y=(Y+50-25*Math.Sin(_angle*Math.PI/180)-20*Math.Cos(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortADirection PortIdentifier="@PortIdentifier.C" />
+	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75+25*Math.Cos(_angle*Math.PI/180)-20*Math.Sin(_angle*Math.PI/180)) Y=(Y+50+25*Math.Sin(_angle*Math.PI/180)-20*Math.Cos(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortBDirection PortIdentifier="@PortIdentifier.D" />
 }
 else
 {

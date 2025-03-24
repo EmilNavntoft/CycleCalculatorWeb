@@ -3,6 +3,7 @@
 @using CycleCalculator.CycleModel.Model.Enums
 @using CycleCalculator.CycleModel.Solver
 @using CycleCalculatorWeb.CoolpropJsInterop
+@using CycleCalculatorWeb.CycleModel.Model
 @using CycleCalculatorWeb.Utils
 @using EngineeringUnits
 @using CycleCalculatorWeb.GUI.DragDropComponents
@@ -64,8 +65,7 @@
 
 	public async void Save()
 	{
-		CoolpropJsFluid f = new(coolpropJs);
-		f.UpdatePH(Pressure.FromBar(50), Enthalpy.FromKilojoulePerKilogram(500));
+		AddPHE();
 		// SaveFile saveFile = new();
 		// foreach (var dragDrop in DragDrops)
 		// {
@@ -168,6 +168,9 @@
 			case CycleComponentType.TemperatureBoundary:
 				AddTb();
 				break;
+			case CycleComponentType.HeatFlowBoundary:
+				AddTb();
+				break;
 			case CycleComponentType.TeeSection:
 				AddTee();
 				break;
@@ -213,6 +216,30 @@
 		TemperatureBoundary tb = new TemperatureBoundary(dragDrop.Name, coolpropJs);
 		dragDrop.CycleComponent = tb;
 		LayoutBuilder.AddComponent(tb);
+	}
+
+	private int nHFB = 1;
+	private void AddHFB()
+	{
+		DragDrop dragDrop = new DragDrop();
+		dragDrop.Name = $"HFB{nHFB}";
+		nHFB++;
+		DragDrops.Add(dragDrop);
+		HeatFlowBoundary hfb = new HeatFlowBoundary(dragDrop.Name, coolpropJs);
+		dragDrop.CycleComponent = hfb;
+		LayoutBuilder.AddComponent(hfb);
+	}
+
+	private int nPHE = 1;
+	private void AddPHE()
+	{
+		DragDrop dragDrop = new DragDrop();
+		dragDrop.Name = $"PHE{nPHE}";
+		nPHE++;
+		DragDrops.Add(dragDrop);
+		PlateHeatExchanger phe = new PlateHeatExchanger(dragDrop.Name, coolpropJs);
+		dragDrop.CycleComponent = phe;
+		LayoutBuilder.AddComponent(phe);
 	}
 
 	private int nTee = 1;

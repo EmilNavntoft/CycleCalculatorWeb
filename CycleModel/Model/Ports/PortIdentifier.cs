@@ -11,6 +11,7 @@ namespace CycleCalculator.CycleModel.Model.IO
         A,
         B,
         C,
+        D,
         Empty
     }
 }

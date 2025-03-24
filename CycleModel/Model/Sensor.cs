@@ -15,7 +15,7 @@ namespace CycleCalculator.CycleModel.Model
 			Ports.Add(B, PortB);
 		}
 
-		public override void CalculateMassBalanceEquation()
+		public override void CalculateMassBalanceEquation(Port _)
 		{
 			Port upstreamPort = GetUpstreamPort();
 			Port downstreamPort = GetDownstreamPort();
@@ -24,9 +24,11 @@ namespace CycleCalculator.CycleModel.Model
 			downstreamPort.Pressure = upstreamPort.Pressure;
 
 			TransferState();
+
+			downstreamPort.Connection.Component.CalculateMassBalanceEquation(downstreamPort.Connection);
 		}
 
-		public override void CalculateHeatBalanceEquation()
+		public override void CalculateHeatBalanceEquation(Port _)
 		{
 			Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
@@ -35,7 +37,7 @@ namespace CycleCalculator.CycleModel.Model
 			downstreamPort.Enthalpy = upstreamPort.Enthalpy;
 
 			TransferState();
-			downstreamPort.Connection.Component.CalculateHeatBalanceEquation();
+			downstreamPort.Connection.Component.CalculateHeatBalanceEquation(downstreamPort.Connection);
 		}
 	}
 }

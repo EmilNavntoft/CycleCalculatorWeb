@@ -46,22 +46,23 @@ namespace CycleCalculator.CycleModel.Model
             Ports.Add(B, PortB);
         }
 
-        public override void CalculateMassBalanceEquation()
+        public override void CalculateMassBalanceEquation(Port _)
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
 
             downstreamPort.MassFlow = MassFlow.Zero - upstreamPort.MassFlow;
+            downstreamPort.Pressure = upstreamPort.Pressure;
 
-            TransferState();
-        }
+			TransferState();
 
-        public override void CalculateHeatBalanceEquation()
+			downstreamPort.Connection.Component.CalculateMassBalanceEquation(downstreamPort.Connection);
+		}
+
+        public override void CalculateHeatBalanceEquation(Port _)
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
-
-            
 
 			if (Mode == TemperatureBoundaryMode.OutletTemperature)
 			{
@@ -123,16 +124,16 @@ namespace CycleCalculator.CycleModel.Model
 
         public void CascadeTemperatureAndEnthalpyDownstream()
         {
-            CalculateHeatBalanceEquation();
-            Port downstreamPort = GetDownstreamPort();
+			CalculateHeatBalanceEquation(null);
+			Port downstreamPort = GetDownstreamPort();
             downstreamPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(downstreamPort.Connection);
         }
 
         public void StartHeatBalanceCalculation()
         {
-            CalculateHeatBalanceEquation();
+            CalculateHeatBalanceEquation(null);
             TransferState();
-            GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation();
+            GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation(GetDownstreamPort().Connection);
         }
     }
 }

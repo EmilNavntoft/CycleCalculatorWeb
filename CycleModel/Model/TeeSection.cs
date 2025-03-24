@@ -41,7 +41,7 @@ namespace CycleCalculator.CycleModel.Model
             }
         }
 
-        public override void ReceiveAndCascadeMassFlow(Port port, bool setAsFixedMassFlow)
+        public override void ReceiveAndCascadeMassFlow(Port port)
         {
             if (!Ports.ContainsValue(port))
             {
@@ -51,17 +51,12 @@ namespace CycleCalculator.CycleModel.Model
             var negatedMassFlow = MassFlow.Zero - port.Connection.MassFlow; //Negate incoming massFlow in order to match reference frame of this component
             port.MassFlow = negatedMassFlow;
 
-            if (setAsFixedMassFlow)
-            {
-                port.IsFixedMassFlow = true;
-            }
-
             var unknownPorts = GetUnknownPorts();
             var upstreamPorts = GetUpstreamPorts();
             var downstreamPorts = GetDownstreamPorts();
             if (unknownPorts.Count == 1)
             {
-                CalculateMassBalanceEquation();
+                CalculateMassBalanceEquation(unknownPorts[0].Connection);
             }
         }
 
@@ -102,7 +97,7 @@ namespace CycleCalculator.CycleModel.Model
             }
         }
 
-        public override void CalculateMassBalanceEquation()
+        public override void CalculateMassBalanceEquation(Port _)
         {
             var upstreamPorts = GetUpstreamPorts();
             var downstreamPorts = GetDownstreamPorts();
@@ -129,11 +124,11 @@ namespace CycleCalculator.CycleModel.Model
 
             foreach (var port in Ports.Values)
             {
-                port.Connection.Component.ReceiveAndCascadeMassFlow(port.Connection, false);
+                port.Connection.Component.ReceiveAndCascadeMassFlow(port.Connection);
             }
         }
 
-        public override void CalculatePressureDrop()
+        public override void CalculatePressureDrop(Port port)
         {
             var upstreamPorts = GetUpstreamPorts();
 
@@ -150,11 +145,11 @@ namespace CycleCalculator.CycleModel.Model
 
             foreach (var downstreamPort in downstreamPorts)
             {
-                downstreamPort.Connection.Component.CalculatePressureDrop();
+                downstreamPort.Connection.Component.CalculatePressureDrop(downstreamPort.Connection);
             }
         }
 
-        public override void CalculateHeatBalanceEquation()
+        public override void CalculateHeatBalanceEquation(Port incomingPort)
         {
             var upstreamPorts = GetUpstreamPorts();
             if (upstreamPorts.Count == 0)
@@ -195,7 +190,7 @@ namespace CycleCalculator.CycleModel.Model
 
             foreach (var port in downstreamPorts)
             {
-                port.Connection.Component.CalculateHeatBalanceEquation();
+                port.Connection.Component.CalculateHeatBalanceEquation(port.Connection);
             }
         }
 
@@ -249,33 +244,13 @@ namespace CycleCalculator.CycleModel.Model
             return Ports.Values.ToList().FindAll(port => port.MassFlow == MassFlow.NaN);
         }
 
-        public List<Port> GetFixedPorts()
-        {
-            return Ports.Values.ToList().FindAll(port => port.IsFixedMassFlow);
-        }
-
         public void StartMassBalanceCalculation()
         {
-            CalculateMassBalanceEquation();
+            CalculateMassBalanceEquation(null);
             var downstreamPorts = GetDownstreamPorts();
             foreach (var port in downstreamPorts)
             {
-                port.Connection.Component.CascadeMassBalanceCalculation();
-            }
-        }
-
-        public override void CascadeMassBalanceCalculation()
-        {
-            var unknownPorts = GetUnknownPorts();
-            if (unknownPorts.Any())
-            {
-                CalculateMassBalanceEquation();
-            }
-            var downstreamPorts = GetDownstreamPorts();
-            TransferState();
-            foreach (var port in downstreamPorts)
-            {
-                port.Connection.Component.CascadeMassBalanceCalculation();
+                port.Connection.Component.CalculateMassBalanceEquation(port.Connection);
             }
         }
     }

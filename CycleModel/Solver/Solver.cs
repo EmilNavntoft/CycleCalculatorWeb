@@ -284,6 +284,7 @@ namespace CycleCalculator.CycleModel.Solver
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
+				JsLogger.Log(ex.Message);
 				JsLogger.Log(ex.StackTrace);
             }
 

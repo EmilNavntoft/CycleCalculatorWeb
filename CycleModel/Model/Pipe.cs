@@ -24,7 +24,7 @@ namespace CycleCalculator.CycleModel.Model
             PressureDropCoefficient = pressureDropCoefficient;
         }
 
-        public override void CalculateMassBalanceEquation()
+        public override void CalculateMassBalanceEquation(Port _)
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
@@ -34,7 +34,7 @@ namespace CycleCalculator.CycleModel.Model
             TransferState();
         }
 
-        public override void CalculateHeatBalanceEquation()
+        public override void CalculateHeatBalanceEquation(Port _)
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
@@ -44,10 +44,10 @@ namespace CycleCalculator.CycleModel.Model
             _density = Fluid.Density;
 
             TransferState();
-            downstreamPort.Connection.Component.CalculateHeatBalanceEquation();
+            downstreamPort.Connection.Component.CalculateHeatBalanceEquation(downstreamPort.Connection);
         }
 
-        public override void CalculatePressureDrop()
+        public override void CalculatePressureDrop(Port _)
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
@@ -73,7 +73,7 @@ namespace CycleCalculator.CycleModel.Model
             downstreamPort.Pressure = upstreamPort.Pressure - Pressure.FromBar(PressureDropCoefficient * Math.Pow(volumeFlow.CubicMeterPerSecond, 2));
 
             TransferState();
-            downstreamPort.Connection.Component.CalculatePressureDrop();
+            downstreamPort.Connection.Component.CalculatePressureDrop(downstreamPort.Connection);
         }
 
         public override void ReceiveAndCascadePressure(Port port)

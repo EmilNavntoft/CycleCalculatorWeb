@@ -55,7 +55,7 @@ namespace CycleCalculator.CycleModel.Model
             InitializeMassFlow();
         }
 
-        public override void CalculateMassBalanceEquation()
+        public override void CalculateMassBalanceEquation(Port _)
         {
             PortB.MassFlow = MassFlow.Zero - PortA.MassFlow;
             NominalMassFlowError = PortA.MassFlow - NominalMassFlow;
@@ -67,12 +67,12 @@ namespace CycleCalculator.CycleModel.Model
             TransferState();
         }
 
-        public override void CalculatePressureDrop()
+        public override void CalculatePressureDrop(Port _)
         {
             return;
         }
 
-        public override void CalculateHeatBalanceEquation()
+        public override void CalculateHeatBalanceEquation(Port _)
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
@@ -92,7 +92,7 @@ namespace CycleCalculator.CycleModel.Model
             PowerConsumption = upstreamPort.MassFlow * (downstreamPort.Enthalpy - upstreamPort.Enthalpy);
 
 			TransferState();
-            GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation();
+            GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation(GetDownstreamPort().Connection);
         }
 
         public override void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
@@ -112,7 +112,7 @@ namespace CycleCalculator.CycleModel.Model
             port.Enthalpy = port.Connection.Enthalpy;
         }
 
-        public override void ReceiveAndCascadeMassFlow(Port port, bool setAsFixedMassFlow)
+        public override void ReceiveAndCascadeMassFlow(Port port)
         {
             if (!Ports.ContainsValue(port))
             {
@@ -133,7 +133,7 @@ namespace CycleCalculator.CycleModel.Model
             var otherPort = Ports[otherIdentifier];
             otherPort.MassFlow = port.Connection.MassFlow;
 
-            otherPort.Connection.Component.ReceiveAndCascadeMassFlow(otherPort.Connection, true);
+            otherPort.Connection.Component.ReceiveAndCascadeMassFlow(otherPort.Connection);
         }
 
         public override void ReceiveAndCascadePressure(Port port)
@@ -156,11 +156,6 @@ namespace CycleCalculator.CycleModel.Model
             port.Pressure = port.Connection.Pressure;
         }
 
-        public override void CascadeMassBalanceCalculation()
-        {
-            CalculateMassBalanceEquation();
-        }
-
         public void CascadePressureDownstream()
         {
             if (PortB.Connection.Pressure == PortB.Pressure) return;
@@ -169,22 +164,22 @@ namespace CycleCalculator.CycleModel.Model
 
         public void CascadeMassFlowDownstream()
         {
-            PortB.Connection.Component.ReceiveAndCascadeMassFlow(PortB.Connection, true);
+            PortB.Connection.Component.ReceiveAndCascadeMassFlow(PortB.Connection);
         }
         public void CascadeMassFlowUpstream()
         {
-            PortA.Connection.Component.ReceiveAndCascadeMassFlow(PortA.Connection, true);
+            PortA.Connection.Component.ReceiveAndCascadeMassFlow(PortA.Connection);
         }
 
         public void StartMassBalanceCalculation()
         {
-            CalculateMassBalanceEquation();
-            GetDownstreamPort().Connection.Component.CascadeMassBalanceCalculation();
-        }
+            CalculateMassBalanceEquation(GetDownstreamPort().Connection);
+            GetDownstreamPort().Connection.Component.CalculateMassBalanceEquation(GetDownstreamPort().Connection);
+		}
 
         public void StartPressureDropCalculation()
         {
-            GetDownstreamPort().Connection.Component.CalculatePressureDrop();
+            GetDownstreamPort().Connection.Component.CalculatePressureDrop(GetDownstreamPort().Connection);
         }
 
         public override Port GetUpstreamPort()

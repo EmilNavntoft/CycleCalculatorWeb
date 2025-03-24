@@ -43,17 +43,17 @@ namespace CycleCalculator.CycleModel.Model
             Fluid = new CoolpropJsFluid(coolprop);
 		}
 
-        public abstract void CalculateMassBalanceEquation();
+        public abstract void CalculateMassBalanceEquation(Port port);
 
-        public abstract void CalculateHeatBalanceEquation();
+        public abstract void CalculateHeatBalanceEquation(Port port);
 
-        public virtual void CalculatePressureDrop()
+        public virtual void CalculatePressureDrop(Port port)
         {
             var downstreamPort = GetDownstreamPort();
             downstreamPort.Pressure = GetUpstreamPort().Pressure;
 
             TransferState();
-            downstreamPort.Connection.Component.CalculatePressureDrop();
+            downstreamPort.Connection.Component.CalculatePressureDrop(downstreamPort.Connection);
         }
         public virtual bool IsMassBalanceEquationIndeterminate()
         {
@@ -94,7 +94,7 @@ namespace CycleCalculator.CycleModel.Model
             otherPort.Connection.Component.ReceiveAndCascadePressure(otherPort.Connection);
         }
 
-        public virtual void ReceiveAndCascadeMassFlow(Port port, bool setAsFixedMassFlow)
+        public virtual void ReceiveAndCascadeMassFlow(Port port)
         {
             if (!Ports.ContainsValue(port))
             {
@@ -109,7 +109,7 @@ namespace CycleCalculator.CycleModel.Model
             var otherPort = Ports[otherIdentifier];
             otherPort.MassFlow = port.Connection.MassFlow;
 
-            otherPort.Connection.Component.ReceiveAndCascadeMassFlow(otherPort.Connection, setAsFixedMassFlow);
+            otherPort.Connection.Component.ReceiveAndCascadeMassFlow(otherPort.Connection);
         }
 
         public virtual void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
@@ -119,8 +119,6 @@ namespace CycleCalculator.CycleModel.Model
                 throw new SolverException($"Cascaded port does not belong to {Name}");
             }
 
-            var negatedMassFlow = MassFlow.Zero - port.Connection.MassFlow; //Negate incoming massFlow in order to match reference frame of this component
-            port.MassFlow = negatedMassFlow;
             port.Temperature = port.Connection.Temperature;
             port.Enthalpy = port.Connection.Enthalpy;
 
@@ -131,12 +129,6 @@ namespace CycleCalculator.CycleModel.Model
             otherPort.Enthalpy = port.Connection.Enthalpy;
 
             otherPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(otherPort.Connection);
-        }
-
-        public virtual void CascadeMassBalanceCalculation()
-        {
-            CalculateMassBalanceEquation();
-            GetDownstreamPort().Connection.Component.CascadeMassBalanceCalculation();
         }
 
         public virtual void StartCascadeFluidTypeChange()

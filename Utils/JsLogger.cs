@@ -8,7 +8,7 @@ namespace CycleCalculatorWeb.Utils
 
 		public static void Log(string message)
 		{
-			JsRuntime.InvokeVoidAsync(message);
+			JsRuntime.InvokeVoidAsync("log", message);
 		}
 	}
 }

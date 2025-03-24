@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Platforms>AnyCPU;x86</Platforms>
+    <Platforms>AnyCPU;x64</Platforms>
 	<PublishRepositoryUrl>true</PublishRepositoryUrl>
 	<PublishUrl>docs</PublishUrl>
 	<PublishAot>False</PublishAot>
