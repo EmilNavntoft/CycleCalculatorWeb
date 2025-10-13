@@ -14,7 +14,7 @@ namespace CycleCalculator.CycleModel.Model
     {
 		[Editable(false)]
 		public Port PortC { get; set; }
-        public TeeSection(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+        public TeeSection(string name, IJSInProcessObjectReference coolProp) : base(name, coolProp)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);

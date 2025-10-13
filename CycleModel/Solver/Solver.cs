@@ -11,7 +11,7 @@ namespace CycleCalculator.CycleModel.Solver
 {
     public static class Solver
     {
-        private static Random rng = new Random();
+        private static Random _rng = new Random();
 
    //     public static List<CycleComponent> Layout1()
    //     {
@@ -241,15 +241,15 @@ namespace CycleCalculator.CycleModel.Solver
    //         return cycleComponents;
    //     }
 
-        private static List<CycleComponent> cycleComponents;
+        private static List<CycleComponent> _cycleComponents;
 
         public static void Reset()
         {
-            if (cycleComponents is null || cycleComponents.Count == 0)
+            if (_cycleComponents is null || _cycleComponents.Count == 0)
             {
                 return;
             }
-			foreach (CycleComponent component in cycleComponents)
+			foreach (CycleComponent component in _cycleComponents)
 			{
 				foreach (Port port in component.Ports.Values)
 				{
@@ -263,12 +263,13 @@ namespace CycleCalculator.CycleModel.Solver
 
         public static void Solve()
         {
-            cycleComponents = LayoutBuilder.CycleComponents;
-            List<IPressureSetter> pressureSetters = cycleComponents.FindAll(c => c is IPressureSetter).Cast<IPressureSetter>().ToList();
-            List<IMassFlowSetter> massFlowSetters = cycleComponents.FindAll(c => c is IMassFlowSetter).Cast<IMassFlowSetter>().ToList();
-            List<ITemperatureOrEnthalpySetter> temperatureOrEnthalpySetters = cycleComponents.FindAll(c => c is ITemperatureOrEnthalpySetter).Cast<ITemperatureOrEnthalpySetter>().ToList();
-            List<TeeSection> tees = cycleComponents.FindAll(c => c is TeeSection).Cast<TeeSection>().ToList();
-            List<Pipe> pipes = cycleComponents.FindAll(c => c is Pipe).Cast<Pipe>().ToList();
+            _cycleComponents = LayoutBuilder.CycleComponents;
+            List<IPressureSetter> pressureSetters = _cycleComponents.FindAll(c => c is IPressureSetter).Cast<IPressureSetter>().ToList();
+            List<IMassFlowSetter> massFlowSetters = _cycleComponents.FindAll(c => c is IMassFlowSetter).Cast<IMassFlowSetter>().ToList();
+            List<ITemperatureOrEnthalpySetter> temperatureOrEnthalpySetters = _cycleComponents.FindAll(c => c is ITemperatureOrEnthalpySetter).Cast<ITemperatureOrEnthalpySetter>().ToList();
+            List<IHeatExchanger> heatExchangers = _cycleComponents.FindAll(c => c is IHeatExchanger).Cast<IHeatExchanger>().ToList();
+            List<TeeSection> tees = _cycleComponents.FindAll(c => c is TeeSection).Cast<TeeSection>().ToList();
+            List<Pipe> pipes = _cycleComponents.FindAll(c => c is Pipe).Cast<Pipe>().ToList();
             
             Stopwatch stopwatch = Stopwatch.StartNew();
             
@@ -280,7 +281,40 @@ namespace CycleCalculator.CycleModel.Solver
 				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
 				PerformPressureDropCalculations(pressureSetters);
 				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
-			}
+				PerformHeatExchangerCalculattions(heatExchangers);
+				
+				CascadeKnownPressures(pressureSetters);
+				CascadeKnownMassflows(massFlowSetters);
+				PerformMassBalanceCalculations(massFlowSetters);
+				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
+				PerformPressureDropCalculations(pressureSetters);
+				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
+				PerformHeatExchangerCalculattions(heatExchangers);
+				
+				CascadeKnownPressures(pressureSetters);
+				CascadeKnownMassflows(massFlowSetters);
+				PerformMassBalanceCalculations(massFlowSetters);
+				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
+				PerformPressureDropCalculations(pressureSetters);
+				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
+				PerformHeatExchangerCalculattions(heatExchangers);
+				
+				CascadeKnownPressures(pressureSetters);
+				CascadeKnownMassflows(massFlowSetters);
+				PerformMassBalanceCalculations(massFlowSetters);
+				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
+				PerformPressureDropCalculations(pressureSetters);
+				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
+				PerformHeatExchangerCalculattions(heatExchangers);
+				
+				CascadeKnownPressures(pressureSetters);
+				CascadeKnownMassflows(massFlowSetters);
+				PerformMassBalanceCalculations(massFlowSetters);
+				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
+				PerformPressureDropCalculations(pressureSetters);
+				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
+				PerformHeatExchangerCalculattions(heatExchangers);
+            }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
@@ -314,6 +348,15 @@ namespace CycleCalculator.CycleModel.Solver
             {
                 temperatureOrEnthalpySetter.StartHeatBalanceCalculation();
             }
+        }
+
+        private static void PerformHeatExchangerCalculattions(List<IHeatExchanger> heatExchangers)
+        {
+	        //Calculate heat exchangers
+	        foreach (IHeatExchanger heatExchanger in heatExchangers)
+	        {
+		        heatExchanger.CalculateHeatExchanger();
+	        }
         }
 
         private static void CascadeInitialTemperaturesAndEnthalpies(List<ITemperatureOrEnthalpySetter> temperatureOrEnthalpySetters)

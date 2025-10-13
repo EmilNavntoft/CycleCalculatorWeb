@@ -1,39 +1,39 @@
 ﻿@using System.Globalization
 <path style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-	  d="M @((75+Xoffset).ToString(_NumberFormatInfo)),@((67.5+Yoffset).ToString(_NumberFormatInfo)) V @((50+Xoffset).ToString(_NumberFormatInfo)) @((30+Yoffset).ToString(_NumberFormatInfo))"
+	  d="M @((75+Xoffset).ToString(_numberFormatInfo)),@((67.5+Yoffset).ToString(_numberFormatInfo)) V @((50+Xoffset).ToString(_numberFormatInfo)) @((30+Yoffset).ToString(_numberFormatInfo))"
 	  id="path1-1"
 	  sodipodi:nodetypes="ccc" />
 <rect style="fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:0"
 	  id="rect1"
 	  width="47.542301"
 	  height="35.173573"
-	  x=@((50+Xoffset).ToString(_NumberFormatInfo))
-	  y=@((31.5+Yoffset).ToString(_NumberFormatInfo)) />
+	  x=@((50+Xoffset).ToString(_numberFormatInfo))
+	  y=@((31.5+Yoffset).ToString(_numberFormatInfo)) />
 <rect style="fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:0"
 	  id="rect2"
 	  width="78.592964"
 	  height="51.149849"
-	  x=@((40+Xoffset).ToString(_NumberFormatInfo))
-	  y=@((19.2+Yoffset).ToString(_NumberFormatInfo)) />
+	  x=@((40+Xoffset).ToString(_numberFormatInfo))
+	  y=@((19.2+Yoffset).ToString(_numberFormatInfo)) />
 <rect style="fill:#000000;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-dasharray:none;stroke-opacity:0"
 	  id="rect3"
 	  width="0.38652277"
 	  height="0.77304554"
-	  x=@((75+Xoffset).ToString(_NumberFormatInfo))
-	  y=@((50.8+Yoffset).ToString(_NumberFormatInfo)) />
+	  x=@((75+Xoffset).ToString(_numberFormatInfo))
+	  y=@((50.8+Yoffset).ToString(_numberFormatInfo)) />
 <rect style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1.50286;stroke-opacity:1"
 	  id="rect4"
 	  width="50.873943"
 	  height="8.3564415"
-	  x=@((50+Xoffset).ToString(_NumberFormatInfo))
-	  y=@((45.6+Yoffset).ToString(_NumberFormatInfo))
+	  x=@((50+Xoffset).ToString(_numberFormatInfo))
+	  y=@((45.6+Yoffset).ToString(_numberFormatInfo))
 	  ry="0" />
 <rect style="fill:#ffffff;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-opacity:0"
 	  id="rect5"
 	  width="60.812916"
 	  height="42.259823"
-	  x=@((45+Xoffset).ToString(_NumberFormatInfo))
-	  y=@((28.6+Yoffset).ToString(_NumberFormatInfo)) />
+	  x=@((45+Xoffset).ToString(_numberFormatInfo))
+	  y=@((28.6+Yoffset).ToString(_numberFormatInfo)) />
 
 @code {
 	[Parameter]
@@ -42,7 +42,7 @@
 	[Parameter]
 	public double Yoffset { get; set; } = 0;
 
-	NumberFormatInfo _NumberFormatInfo = new NumberFormatInfo
+	NumberFormatInfo _numberFormatInfo = new NumberFormatInfo
 		{
 			NumberDecimalSeparator = "."
 		};

@@ -1,7 +1,7 @@
 ﻿@using CycleCalculatorWeb.GUI.Services
-@inject IMouseService mouseSrv
+@inject IMouseService MouseSrv
  
-<g transform="translate(@x, @y) rotate(@_rotation 75 50)" @onclick=OnClick @onclick:stopPropagation @oncontextmenu=OnClick @oncontextmenu:preventDefault="true" @onmousedown=OnDown
+<g transform="translate(@_x, @_y) rotate(@_rotation 75 50)" @onclick=OnClick @onclick:stopPropagation @oncontextmenu=OnClick @oncontextmenu:preventDefault="true" @onmousedown=OnDown
 @onmousedown:stopPropagation="true">
     @ChildContent
 </g>
@@ -12,24 +12,24 @@
 
     private double _rotation = 0;
 
-    double? x;
+    double? _x;
     [Parameter]
     public double X { 
-        get { return x ?? 0; }
-        set { if (!x.HasValue || (!isDown & XChanged.HasDelegate)) 
+        get { return _x ?? 0; }
+        set { if (!_x.HasValue || (!IsDown & XChanged.HasDelegate)) 
             { 
-                x = value; 
+                _x = value; 
             } 
         } 
     }
     [Parameter] 
     public EventCallback<double> XChanged { get; set; }
 
-    double? y;
+    double? _y;
     [Parameter]
     public double Y {
-        get { return y ?? 0; }
-        set { if (!y.HasValue || (!isDown & YChanged.HasDelegate)) { y = value; } }
+        get { return _y ?? 0; }
+        set { if (!_y.HasValue || (!IsDown & YChanged.HasDelegate)) { _y = value; } }
     }
     [Parameter] 
     public EventCallback<double> YChanged { get; set; }
@@ -42,52 +42,52 @@
 
 
     protected override void OnInitialized() {
-        mouseSrv.OnMove += OnMove;
-        mouseSrv.OnUp += OnUpLeave;
-        mouseSrv.OnLeave += OnUpLeave;
+        MouseSrv.OnMove += OnMove;
+        MouseSrv.OnUp += OnUpLeave;
+        MouseSrv.OnLeave += OnUpLeave;
         base.OnInitialized();
     }
 
     bool _isDown;
-    bool isDown {
+    bool IsDown {
         get { return _isDown; }
         set {
             _isDown = value;
         }
     }
 
-    double cursorX;
-    double cursorY;
+    double _cursorX;
+    double _cursorY;
     void OnDown(MouseEventArgs e) {
-        isDown = true;
-        cursorX = e.ClientX;
-        cursorY = e.ClientY;
+        IsDown = true;
+        _cursorX = e.ClientX;
+        _cursorY = e.ClientY;
     }
 
     void OnUpLeave(object? _, MouseEventArgs e)
     {
-        isDown = false;
+        IsDown = false;
         OnUp.InvokeAsync(e);
     }
 
     void OnMove(object? _, MouseEventArgs e) {
-        if (!isDown)
+        if (!IsDown)
             return;
 
-        x = x - (cursorX - e.ClientX);
-        y = y - (cursorY - e.ClientY);
+        _x = _x - (_cursorX - e.ClientX);
+        _y = _y - (_cursorY - e.ClientY);
 
-        cursorX = e.ClientX;
-        cursorY = e.ClientY;
+        _cursorX = e.ClientX;
+        _cursorY = e.ClientY;
 
-        XChanged.InvokeAsync(x.Value);
-        YChanged.InvokeAsync(y.Value);
+        XChanged.InvokeAsync(_x.Value);
+        YChanged.InvokeAsync(_y.Value);
     }
 
     public void Dispose() {
-        mouseSrv.OnMove -= OnMove;
-        mouseSrv.OnUp -= OnUpLeave;
-        mouseSrv.OnLeave -= OnUpLeave;
+        MouseSrv.OnMove -= OnMove;
+        MouseSrv.OnUp -= OnUpLeave;
+        MouseSrv.OnLeave -= OnUpLeave;
     }
 
     public void Rotate()

@@ -13,8 +13,8 @@
 @using SharpFluids
 @using static CycleCalculatorWeb.GUI.DragDropComponents.Draggable
 ﻿@using static CycleCalculatorWeb.GUI.DragDropComponents.Connector
-@inject MouseService mouseSrv
-@inject IJSRuntime JS
+@inject MouseService MouseSrv
+@inject IJSRuntime Js
 
 
 <div>
@@ -22,13 +22,13 @@
 </div>
 
 <svg class="dropWindow" height="3840" width="2160" tabindex="0"
-	 @onmousemove="@(e => mouseSrv.FireMove(this, e))"
-	 @onmouseup="@(e => mouseSrv.FireUp(this, e))"
-	 @onmouseleave="@(e => mouseSrv.FireLeave(this, e))"
+	 @onmousemove="@(e => MouseSrv.FireMove(this, e))"
+	 @onmouseup="@(e => MouseSrv.FireUp(this, e))"
+	 @onmouseleave="@(e => MouseSrv.FireLeave(this, e))"
 	 @onclick="OnBackgroundClick"
 	 @onkeydown="OnKeyDown">
 
-	@foreach (var connector in Connectors)
+	@foreach (var connector in _connectors)
 	{
 		<Connector @key="connector" X1=@(connector.ConnectionOne.X)
 				   Y1=@(connector.ConnectionOne.Y)
@@ -39,7 +39,7 @@
 				   OnClick="@(c => ConnectorClicked(c, connector))" />
 	}
 
-	@foreach (var dragDrop in DragDrops)
+	@foreach (var dragDrop in _dragDrops)
 	{
 		<DragDrop @key=@dragDrop Name=@dragDrop.Name InitialX=@dragDrop.X InitialY=@dragDrop.Y OnDragDropInitialized="@(d => DragDropInitialized(d, dragDrop))" OnDragDropUp="@(d => DragDropUp(d, dragDrop))" OnDragDropClick="@(d => DragDropClicked(d, dragDrop))" OnClickPortA="@(port => PortClicked(port))" OnClickPortB="@(port => PortClicked(port))" OnClickPortC="@(port => PortClicked(port))" CycleComponent=dragDrop.CycleComponent />
 	}
@@ -49,23 +49,23 @@
 <button class="btn btn-primary" id="loadButton" @onclick="LoadSaveFileData">Load</button>
 
 @code {
-	private List<DragDrop> DragDrops = new List<DragDrop>();
-	private List<Connector> Connectors = new List<Connector>();
-	private IJSInProcessObjectReference? coolpropJs;
+	private List<DragDrop> _dragDrops = new List<DragDrop>();
+	private List<Connector> _connectors = new List<Connector>();
+	private IJSInProcessObjectReference? _coolpropJs;
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
 		{
-			var jsInProcess = (IJSInProcessRuntime)JS;
-			coolpropJs = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./js/functions.js");
-			JsLogger.JsRuntime = JS;
+			var jsInProcess = (IJSInProcessRuntime)Js;
+			_coolpropJs = await Js.InvokeAsync<IJSInProcessObjectReference>("import", "./js/functions.js");
+			JsLogger.JsRuntime = Js;
 		}
 	}
 
 	public async void Save()
 	{
-		AddPHE();
+		AddPhe();
 		// SaveFile saveFile = new();
 		// foreach (var dragDrop in DragDrops)
 		// {
@@ -83,11 +83,11 @@
 		// await FileUtil.SaveAs(js, "CycleCalculatorSave.json", bytes);
 	}
 
-	SaveFile? _LoadedSaveFile;
+	SaveFile? _loadedSaveFile;
 	public async void LoadSaveFileData()
 	{
-		_LoadedSaveFile = await SaveFile.OpenLoadDialog();
-		if (_LoadedSaveFile != null)
+		_loadedSaveFile = await SaveFile.OpenLoadDialog();
+		if (_loadedSaveFile != null)
 		{
 			BuildLoadedSaveFileDragDrops();
 		}
@@ -96,11 +96,11 @@
 
 	private void BuildLoadedSaveFileDragDrops()
 	{
-		if (_LoadedSaveFile == null)
+		if (_loadedSaveFile == null)
 		{
 			return;
 		}
-		foreach (var dragDropDao in _LoadedSaveFile.DragDropDaos)
+		foreach (var dragDropDao in _loadedSaveFile.DragDropDaos)
 		{
 			DragDrop dragDrop = new();
 			dragDrop.Name = dragDropDao.Name;
@@ -124,29 +124,29 @@
 			}
 
 			dragDrop.CycleComponent = (CycleComponent)component;
-			DragDrops.Add(dragDrop);
+			_dragDrops.Add(dragDrop);
 			LayoutBuilder.AddComponent((CycleComponent)component);
 		}
 	}
 
 	private void BuildLoadedSaveFileConnectors()
 	{
-		if (_LoadedSaveFile == null)
+		if (_loadedSaveFile == null)
 		{
 			return;
 		}
-		foreach (var connectorDao in _LoadedSaveFile.ConnectorDaos)
+		foreach (var connectorDao in _loadedSaveFile.ConnectorDaos)
 		{
 			Connector connector = new();
-			CycleComponent componentOne = DragDrops.First(d => d.Name == connectorDao.ComponentOneName).CycleComponent;
-			CycleComponent componentTwo = DragDrops.First(d => d.Name == connectorDao.ComponentTwoName).CycleComponent;
+			CycleComponent componentOne = _dragDrops.First(d => d.Name == connectorDao.ComponentOneName).CycleComponent;
+			CycleComponent componentTwo = _dragDrops.First(d => d.Name == connectorDao.ComponentTwoName).CycleComponent;
 
-			connector.ConnectionOne = DragDrops.First(d => d.Name == connectorDao.ComponentOneName).Ports.First(p => p.PortIdentifier == connectorDao.PortOneIdentifier);
-			connector.ConnectionTwo = DragDrops.First(d => d.Name == connectorDao.ComponentTwoName).Ports.First(p => p.PortIdentifier == connectorDao.PortTwoIdentifier);
-			Connectors.Add(connector);
+			connector.ConnectionOne = _dragDrops.First(d => d.Name == connectorDao.ComponentOneName).Ports.First(p => p.PortIdentifier == connectorDao.PortOneIdentifier);
+			connector.ConnectionTwo = _dragDrops.First(d => d.Name == connectorDao.ComponentTwoName).Ports.First(p => p.PortIdentifier == connectorDao.PortTwoIdentifier);
+			_connectors.Add(connector);
 			LayoutBuilder.AddConnection(componentOne, componentTwo, connectorDao.PortOneIdentifier, connectorDao.PortTwoIdentifier);
 		}
-		_LoadedSaveFile = null;
+		_loadedSaveFile = null;
 	}
 
 	private void RunCalculation()
@@ -163,7 +163,7 @@
 				AddComp();
 				break;
 			case CycleComponentType.Valve:
-				AddPRV();
+				AddPrv();
 				break;
 			case CycleComponentType.TemperatureBoundary:
 				AddTb();
@@ -182,86 +182,86 @@
 		}
 	}
 
-	private int nComp = 1;
+	private int _nComp = 1;
 	private void AddComp()
 	{
 		DragDrop dragDrop = new DragDrop();
-		dragDrop.Name = $"Comp{nComp}";
-		nComp++;
-		SimpleCompressor compressor = new SimpleCompressor(dragDrop.Name, coolpropJs);
+		dragDrop.Name = $"Comp{_nComp}";
+		_nComp++;
+		SimpleCompressor compressor = new SimpleCompressor(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = compressor;
 		LayoutBuilder.AddComponent(compressor);
-		DragDrops.Add(dragDrop);
+		_dragDrops.Add(dragDrop);
 	}
 
-	private int nPRV = 1;
-	private void AddPRV()
+	private int _nPrv = 1;
+	private void AddPrv()
 	{
 		DragDrop dragDrop = new DragDrop();
-		dragDrop.Name = $"PRV{nPRV}";
-		nPRV++;
-		DragDrops.Add(dragDrop);
-		PRV prv = new PRV(dragDrop.Name, coolpropJs);
+		dragDrop.Name = $"PRV{_nPrv}";
+		_nPrv++;
+		_dragDrops.Add(dragDrop);
+		Prv prv = new Prv(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = prv;
 		LayoutBuilder.AddComponent(prv);
 	}
 
-	private int nTb = 1;
+	private int _nTb = 1;
 	private void AddTb()
 	{
 		DragDrop dragDrop = new DragDrop();
-		dragDrop.Name = $"TB{nTb}";
-		nTb++;
-		DragDrops.Add(dragDrop);
-		TemperatureBoundary tb = new TemperatureBoundary(dragDrop.Name, coolpropJs);
+		dragDrop.Name = $"TB{_nTb}";
+		_nTb++;
+		_dragDrops.Add(dragDrop);
+		TemperatureBoundary tb = new TemperatureBoundary(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = tb;
 		LayoutBuilder.AddComponent(tb);
 	}
 
-	private int nHFB = 1;
-	private void AddHFB()
+	private int _nHfb = 1;
+	private void AddHfb()
 	{
 		DragDrop dragDrop = new DragDrop();
-		dragDrop.Name = $"HFB{nHFB}";
-		nHFB++;
-		DragDrops.Add(dragDrop);
-		HeatFlowBoundary hfb = new HeatFlowBoundary(dragDrop.Name, coolpropJs);
+		dragDrop.Name = $"HFB{_nHfb}";
+		_nHfb++;
+		_dragDrops.Add(dragDrop);
+		HeatFlowBoundary hfb = new HeatFlowBoundary(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = hfb;
 		LayoutBuilder.AddComponent(hfb);
 	}
 
-	private int nPHE = 1;
-	private void AddPHE()
+	private int _nPhe = 1;
+	private void AddPhe()
 	{
 		DragDrop dragDrop = new DragDrop();
-		dragDrop.Name = $"PHE{nPHE}";
-		nPHE++;
-		DragDrops.Add(dragDrop);
-		PlateHeatExchanger phe = new PlateHeatExchanger(dragDrop.Name, coolpropJs);
+		dragDrop.Name = $"PHE{_nPhe}";
+		_nPhe++;
+		_dragDrops.Add(dragDrop);
+		PlateHeatExchanger phe = new PlateHeatExchanger(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = phe;
 		LayoutBuilder.AddComponent(phe);
 	}
 
-	private int nTee = 1;
+	private int _nTee = 1;
 	private void AddTee()
 	{
 		DragDrop dragDrop = new DragDrop();
-		dragDrop.Name = $"TEE{nTb}";
-		nTee++;
-		DragDrops.Add(dragDrop);
-		TeeSection tee = new TeeSection(dragDrop.Name, coolpropJs);
+		dragDrop.Name = $"TEE{_nTb}";
+		_nTee++;
+		_dragDrops.Add(dragDrop);
+		TeeSection tee = new TeeSection(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = tee;
 		LayoutBuilder.AddComponent(tee);
 	}
 
-	private int nSensor = 1;
+	private int _nSensor = 1;
 	private void AddSensor()
 	{
 		DragDrop dragDrop = new DragDrop();
-		dragDrop.Name = $"Sensor{nSensor}";
-		nSensor++;
-		DragDrops.Add(dragDrop);
-		Sensor sensor = new Sensor(dragDrop.Name, coolpropJs);
+		dragDrop.Name = $"Sensor{_nSensor}";
+		_nSensor++;
+		_dragDrops.Add(dragDrop);
+		Sensor sensor = new Sensor(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = sensor;
 		LayoutBuilder.AddComponent(sensor);
 	}
@@ -273,7 +273,7 @@
 
 		dragDropData.Ports = dragDropDisplayed.Ports;
 
-		if (dragDropData == DragDrops.Last() && _LoadedSaveFile != null)
+		if (dragDropData == _dragDrops.Last() && _loadedSaveFile != null)
 		{
 			BuildLoadedSaveFileConnectors();
 		}
@@ -281,100 +281,100 @@
 
 	private void OnBackgroundClick()
 	{
-		if (clickedPort != null)
+		if (_clickedPort != null)
 		{
-			clickedPort.ResetIsClicked();
+			_clickedPort.ResetIsClicked();
 		}
-		clickedPort = null;
+		_clickedPort = null;
 
-		if (clickedConnectorDisplayed != null)
+		if (_clickedConnectorDisplayed != null)
 		{
-			clickedConnectorDisplayed.ResetIsClicked();
-			clickedConnectorDisplayed = null;
+			_clickedConnectorDisplayed.ResetIsClicked();
+			_clickedConnectorDisplayed = null;
 		}
-		clickedConnectorData = null;
+		_clickedConnectorData = null;
 
-		if (clickedDragDropDisplayed != null)
+		if (_clickedDragDropDisplayed != null)
 		{
-			clickedDragDropDisplayed = null;
+			_clickedDragDropDisplayed = null;
 		}
-		clickedDragDropData = null;
+		_clickedDragDropData = null;
 	}
 
-	DragDropPort? clickedPort;
+	DragDropPort? _clickedPort;
 	private void PortClicked(DragDropPort port)
 	{
-		bool portAlreadyConnected = Connectors.Any(c => c.ConnectionOne == port || c.ConnectionTwo == port);
+		bool portAlreadyConnected = _connectors.Any(c => c.ConnectionOne == port || c.ConnectionTwo == port);
 		if (portAlreadyConnected)
 		{
-			if (clickedPort != null)
+			if (_clickedPort != null)
 			{
-				clickedPort.ResetIsClicked();
+				_clickedPort.ResetIsClicked();
 			}
-			clickedPort = null;
+			_clickedPort = null;
 			port.ResetIsClicked();
 			return;
 		}
-		if (clickedPort == null)
+		if (_clickedPort == null)
 		{
-			clickedPort = port;
+			_clickedPort = port;
 		}
 		else
 		{
-			bool clickedPortIsPort = clickedPort == port;
-			bool clickedPortParentIsPortParent = clickedPort.Parent == port.Parent;
-			bool clickedPortAlreadyConnected = Connectors.Any(c => c.ConnectionOne == clickedPort || c.ConnectionTwo == clickedPort);
+			bool clickedPortIsPort = _clickedPort == port;
+			bool clickedPortParentIsPortParent = _clickedPort.Parent == port.Parent;
+			bool clickedPortAlreadyConnected = _connectors.Any(c => c.ConnectionOne == _clickedPort || c.ConnectionTwo == _clickedPort);
 
 			if (clickedPortIsPort || clickedPortParentIsPortParent || clickedPortAlreadyConnected)
 			{
-				clickedPort.ResetIsClicked();
+				_clickedPort.ResetIsClicked();
 				port.ResetIsClicked();
-				clickedPort = null;
+				_clickedPort = null;
 				return;
 			}
 
 			Connector newConnector = new Connector()
 				{
-					Dir1 = clickedPort.Direction,
-					ConnectionOne = clickedPort,
+					Dir1 = _clickedPort.Direction,
+					ConnectionOne = _clickedPort,
 					Dir2 = port.Direction,
 					ConnectionTwo = port
 				};
 
-			Connectors.Add(newConnector);
-			LayoutBuilder.AddConnection(clickedPort.Parent.CycleComponent, port.Parent.CycleComponent, clickedPort.PortIdentifier, port.PortIdentifier);
+			_connectors.Add(newConnector);
+			LayoutBuilder.AddConnection(_clickedPort.Parent.CycleComponent, port.Parent.CycleComponent, _clickedPort.PortIdentifier, port.PortIdentifier);
 
-			clickedPort.ResetIsClicked();
+			_clickedPort.ResetIsClicked();
 			port.ResetIsClicked();
-			clickedPort = null;
+			_clickedPort = null;
 			RunCalculation();
 		}
 	}
 
-	Connector? clickedConnectorDisplayed;
-	Connector? clickedConnectorData;
+	Connector? _clickedConnectorDisplayed;
+	Connector? _clickedConnectorData;
 	private void ConnectorClicked(Connector connectorDisplayed, Connector connectorData)
 	{
-		clickedDragDropDisplayed = null;
-		clickedDragDropData = null;
-		clickedConnectorDisplayed = connectorDisplayed;
-		clickedConnectorData = connectorData;
+		_clickedDragDropDisplayed = null;
+		_clickedDragDropData = null;
+		_clickedConnectorDisplayed = connectorDisplayed;
+		_clickedConnectorData = connectorData;
 	}
 
-	DragDrop? clickedDragDropDisplayed;
-	DragDrop? clickedDragDropData;
+	DragDrop? _clickedDragDropDisplayed;
+	DragDrop? _clickedDragDropData;
 	private void DragDropClicked(DragDrop dragDropDisplayed, DragDrop dragDropData) 
 	{ 
-		if (clickedConnectorDisplayed != null)
+		if (_clickedConnectorDisplayed != null)
 		{
-			clickedConnectorDisplayed.ResetIsClicked();
+			_clickedConnectorDisplayed.ResetIsClicked();
 		}
-		clickedConnectorDisplayed = null;
-		clickedConnectorData = null;
-		DragDrops.Remove(dragDropData);
-		DragDrops.Add(dragDropData);
-		clickedDragDropDisplayed = dragDropDisplayed;
-		clickedDragDropData = dragDropData;
+		_clickedConnectorDisplayed = null;
+		_clickedConnectorData = null;
+		_dragDrops.Remove(dragDropData);
+		_dragDrops.Add(dragDropData);
+		_clickedDragDropDisplayed = dragDropDisplayed;
+		_clickedDragDropData = dragDropData;
 	}
 
 	private void DragDropUp(DragDrop dragDropDisplayed, DragDrop dragDropData)
@@ -391,42 +391,42 @@
 		}
 		if (e.Key == "r")
 		{
-			if (clickedDragDropDisplayed != null && clickedDragDropData != null)
+			if (_clickedDragDropDisplayed != null && _clickedDragDropData != null)
 			{
-				clickedDragDropDisplayed.Rotate();
+				_clickedDragDropDisplayed.Rotate();
 			}
 		}
 	}
 
 	private void DeleteSelectedElement()
 	{
-		if (clickedConnectorData != null)
+		if (_clickedConnectorData != null)
 		{
-			Connectors.Remove(clickedConnectorData);
-			LayoutBuilder.RemoveConnection(clickedConnectorData.ConnectionOne.Parent.CycleComponent,
-				clickedConnectorData.ConnectionTwo.Parent.CycleComponent,
-				clickedConnectorData.ConnectionOne.PortIdentifier,
-				clickedConnectorData.ConnectionTwo.PortIdentifier);
+			_connectors.Remove(_clickedConnectorData);
+			LayoutBuilder.RemoveConnection(_clickedConnectorData.ConnectionOne.Parent.CycleComponent,
+				_clickedConnectorData.ConnectionTwo.Parent.CycleComponent,
+				_clickedConnectorData.ConnectionOne.PortIdentifier,
+				_clickedConnectorData.ConnectionTwo.PortIdentifier);
 
-			clickedConnectorData = null;
-			clickedConnectorDisplayed = null;
+			_clickedConnectorData = null;
+			_clickedConnectorDisplayed = null;
 			Solver.Reset();
 		}
-		if (clickedDragDropData != null)
+		if (_clickedDragDropData != null)
 		{
-			var connectedConnectors = Connectors.FindAll(c => c.ConnectionOne.Parent.Name == clickedDragDropData.Name);
+			var connectedConnectors = _connectors.FindAll(c => c.ConnectionOne.Parent.Name == _clickedDragDropData.Name);
 			connectedConnectors = connectedConnectors.Concat(
-				Connectors.FindAll(c => c.ConnectionTwo.Parent.Name == clickedDragDropData.Name)).ToList();
+				_connectors.FindAll(c => c.ConnectionTwo.Parent.Name == _clickedDragDropData.Name)).ToList();
 			foreach (var item in connectedConnectors)
 			{
-				Connectors.Remove(item);
+				_connectors.Remove(item);
 				LayoutBuilder.RemoveConnection(item.ConnectionOne.Parent.CycleComponent,
 				item.ConnectionTwo.Parent.CycleComponent,
 				item.ConnectionOne.PortIdentifier,
 				item.ConnectionTwo.PortIdentifier);
 			}
-			LayoutBuilder.RemoveComponent(clickedDragDropData.CycleComponent);
-			DragDrops.Remove(clickedDragDropData);
+			LayoutBuilder.RemoveComponent(_clickedDragDropData.CycleComponent);
+			_dragDrops.Remove(_clickedDragDropData);
 			Solver.Reset();
 		}
 	}

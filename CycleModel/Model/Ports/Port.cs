@@ -63,15 +63,15 @@ namespace CycleCalculator.CycleModel.Model.IO
             }
         }
 
-        private Port? _Connection;
+        private Port? _connection;
         public Port Connection { 
             get
             {
-                return _Connection;
+                return _connection;
             }
             private set
             {
-                _Connection = value;
+                _connection = value;
             }
         }
         public CycleComponent Component { get; private set; }

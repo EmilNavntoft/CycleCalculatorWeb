@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>AnyCPU;x64</Platforms>
@@ -12,12 +12,12 @@
 
   <ItemGroup>
     <PackageReference Include="Accord" Version="3.8.0" />
-    <PackageReference Include="EngineeringUnits" Version="2.2.103" />
+    <PackageReference Include="EngineeringUnits" Version="2.2.110" />
     <PackageReference Include="HSG.Numerics" Version="1.0.5" />
-    <PackageReference Include="Meziantou.AspNetCore.Components" Version="2.0.11" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.10" PrivateAssets="all" />
-    <PackageReference Include="SharpFluids" Version="3.0.504" />
+    <PackageReference Include="Meziantou.AspNetCore.Components" Version="2.0.23" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.9" PrivateAssets="all" />
+    <PackageReference Include="SharpFluids" Version="3.0.505" />
     <PackageReference Include="Xamarin.Essentials" Version="1.8.1" />
   </ItemGroup>
 
@@ -25,5 +25,9 @@
     <Content Update="wwwroot\coolprop.wasm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Test\" />
   </ItemGroup>
 </Project>

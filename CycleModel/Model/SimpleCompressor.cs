@@ -8,7 +8,7 @@ using CycleCalculator.CycleModel.Exceptions;
 using Microsoft.JSInterop;
 namespace CycleCalculator.CycleModel.Model
 {
-    class SimpleCompressor : CycleComponent, IPressureSetter, IMassFlowSetter, IPowerConsumer
+    internal class SimpleCompressor : CycleComponent, IPressureSetter, IMassFlowSetter, IPowerConsumer
     {
 		[DisplayName("Isentropic efficiency")]
 		public double Efficiency { get; set; } = 0.7;
@@ -46,7 +46,7 @@ namespace CycleCalculator.CycleModel.Model
 			}
 		}
 
-		public SimpleCompressor(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+		public SimpleCompressor(string name, IJSInProcessObjectReference coolProp) : base(name, coolProp)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);

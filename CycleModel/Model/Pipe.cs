@@ -15,7 +15,7 @@ namespace CycleCalculator.CycleModel.Model
         public double PressureDropCoefficient { get; set; }
 
         private Density _density = Density.FromKilogramPerCubicMeter(10);
-        public Pipe(string name, double pressureDropCoefficient, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+        public Pipe(string name, double pressureDropCoefficient, IJSInProcessObjectReference coolProp) : base(name, coolProp)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);

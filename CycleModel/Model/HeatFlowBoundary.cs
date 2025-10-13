@@ -9,7 +9,7 @@ using Microsoft.JSInterop;
 
 namespace CycleCalculator.CycleModel.Model
 {
-	public class HeatFlowBoundary : CycleComponent, IHeatFlowExchanger
+	public class HeatFlowBoundary : CycleComponent, IBoundary
 	{
 		[Editable(false)]
 		public Power HeatFlowExchanged { get; set; } = Power.NaN;
@@ -31,7 +31,7 @@ namespace CycleCalculator.CycleModel.Model
 			}
 		}
 
-		public HeatFlowBoundary(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+		public HeatFlowBoundary(string name, IJSInProcessObjectReference coolProp) : base(name, coolProp)
 		{
 			PortA = new Port(A, this);
 			PortB = new Port(B, this);

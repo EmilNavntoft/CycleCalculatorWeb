@@ -3,6 +3,6 @@
 	public enum FluidNames
 	{
 		Ammonia,
-		CO2
+		Co2
 	}
 }

@@ -2,14 +2,14 @@
 
 <circle style="fill:#ffffff;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-opacity:1"
 		id="path1"
-		cx="@((75+Xoffset).ToString(_NumberFormatInfo))"
-		cy="@((50+Yoffset).ToString(_NumberFormatInfo))"
+		cx="@((75+Xoffset).ToString(_numberFormatInfo))"
+		cy="@((50+Yoffset).ToString(_numberFormatInfo))"
 		r="23.7" />
 <path style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-	  d="M @((67.8+Xoffset).ToString(_NumberFormatInfo)),@((27.5+Yoffset).ToString(_NumberFormatInfo)) @((95.5+Xoffset).ToString(_NumberFormatInfo)),@((37.6+Yoffset).ToString(_NumberFormatInfo))"
+	  d="M @((67.8+Xoffset).ToString(_numberFormatInfo)),@((27.5+Yoffset).ToString(_numberFormatInfo)) @((95.5+Xoffset).ToString(_numberFormatInfo)),@((37.6+Yoffset).ToString(_numberFormatInfo))"
 	  id="path3" />
 <path style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
-	  d="M @((67.8+Xoffset).ToString(_NumberFormatInfo)),@((72.5+Yoffset).ToString(_NumberFormatInfo)) @((95.5+Xoffset).ToString(_NumberFormatInfo)),@((62.6+Yoffset).ToString(_NumberFormatInfo))"
+	  d="M @((67.8+Xoffset).ToString(_numberFormatInfo)),@((72.5+Yoffset).ToString(_numberFormatInfo)) @((95.5+Xoffset).ToString(_numberFormatInfo)),@((62.6+Yoffset).ToString(_numberFormatInfo))"
 	  id="path3-2" />
 
 @code {
@@ -19,7 +19,7 @@
 	[Parameter]
 	public double Yoffset { get; set; } = 0;
 
-	NumberFormatInfo _NumberFormatInfo = new NumberFormatInfo
+	NumberFormatInfo _numberFormatInfo = new NumberFormatInfo
 	{
 		NumberDecimalSeparator = "."
 	};

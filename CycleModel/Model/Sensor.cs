@@ -7,7 +7,7 @@ namespace CycleCalculator.CycleModel.Model
 {
 	public class Sensor : CycleComponent
 	{
-		public Sensor(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+		public Sensor(string name, IJSInProcessObjectReference coolProp) : base(name, coolProp)
 		{
 			PortA = new Port(A, this);
 			PortB = new Port(B, this);

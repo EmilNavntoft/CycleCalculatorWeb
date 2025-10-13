@@ -1,6 +1,6 @@
 ﻿@using CycleCalculator.CycleModel.Model.IO
 ﻿
-<path d="M @X1 @Y1 C @c1x @c1y, @c2x @c2y, @X2 @Y2" stroke="black" stroke-width=@_StrokeWidth fill="transparent"
+<path d="M @X1 @Y1 C @_c1X @_c1Y, @_c2X @_c2Y, @X2 @Y2" stroke="black" stroke-width=@_strokeWidth fill="transparent"
 	  @onclick="OnClickMethod" @onclick:stopPropagation />
 
 @code {
@@ -12,7 +12,7 @@
     [Parameter] public double X2 { get; set; }
     [Parameter] public double Y2 { get; set; }
 
-    private double _StrokeWidth = 3;
+    private double _strokeWidth = 3;
 
     [Parameter]
     public DragDropPort ConnectionOne { get; set; }
@@ -23,61 +23,61 @@
     [Parameter]
     public EventCallback<Connector> OnClick { get; set; }
 
-    double c1x;
-    double c1y;
+    double _c1X;
+    double _c1Y;
 
-    double c2x;
-    double c2y;
+    double _c2X;
+    double _c2Y;
 
     protected override void OnParametersSet()
     {
-        c1x = cx(Dir1, X1);
-        c1y = cy(Dir1, Y1);
+        _c1X = Cx(Dir1, X1);
+        _c1Y = Cy(Dir1, Y1);
 
-        c2x = cx(Dir2, X2);
-        c2y = cy(Dir2, Y2);
+        _c2X = Cx(Dir2, X2);
+        _c2Y = Cy(Dir2, Y2);
 
         base.OnParametersSet();
     }
 
-    const int coef = 70;
+    const int Coef = 70;
 
-    static double cx(Direction dir, double x)
+    static double Cx(Direction dir, double x)
         => (dir == Direction.Right || dir == Direction.Left)
-            ? dir == Direction.Right ? x + coef : x - coef
+            ? dir == Direction.Right ? x + Coef : x - Coef
             : x;
 
-    static double cy(Direction dir, double y)
+    static double Cy(Direction dir, double y)
         => (dir == Direction.Right || dir == Direction.Left)
             ? y
-            : dir == Direction.Bottom ? y + coef : y - coef;
+            : dir == Direction.Bottom ? y + Coef : y - Coef;
 
-    private bool _IsClicked = false;
+    private bool _isClicked = false;
     public void ResetIsClicked()
     {
-        _IsClicked = false;
+        _isClicked = false;
         ResetStroke();
     }
     public bool IsClicked()
     {
-        return _IsClicked;
+        return _isClicked;
     }
 
     private void OnClickMethod()
     {
-        _IsClicked = true;
+        _isClicked = true;
         EnlargeStroke();
         OnClick.InvokeAsync(this);
     }
 
     private void ResetStroke()
     {
-        _StrokeWidth = 3;
+        _strokeWidth = 3;
     }
 
     private void EnlargeStroke()
     {
-        _StrokeWidth = 5;
+        _strokeWidth = 5;
     }
 
     public enum Direction

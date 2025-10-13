@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CycleCalculator.CycleModel.Model.Interfaces
 {
-	public interface IHeatFlowExchanger
+	public interface IBoundary
 	{
 		[Editable(false)]
 		public Power HeatFlowExchanged { get; set; }

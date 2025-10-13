@@ -7,8 +7,8 @@
 @using Meziantou.AspNetCore.Components
 @using Microsoft.JSInterop
 @using static CycleCalculatorWeb.GUI.DragDropComponents.Draggable
-@inject IJSRuntime JS
-@inject MouseService mouseSrv
+@inject IJSRuntime Js
+@inject MouseService MouseSrv
 
 <Draggable @ref=_draggable @bind-X=@X @bind-Y=@Y OnClick="OnClick" OnUp="OnUp">
 
@@ -16,7 +16,7 @@
 	{
 		<Compressor />
 	}
-	@if (CycleComponent is PRV)
+	@if (CycleComponent is Prv)
 	{
 		<Valve />
 	}
@@ -28,15 +28,15 @@
 	{
 		<InlineBoundary />
 	}
-	@if (_CycleComponent is TeeSection)
+	@if (_cycleComponent is TeeSection)
 	{
 		<Tee />
 	}
-	@if (_CycleComponent is CycleCalculator.CycleModel.Model.Sensor)
+	@if (_cycleComponent is CycleCalculator.CycleModel.Model.Sensor)
 	{
 		<Sensor />
 	}
-	@if (_CycleComponent is PlateHeatExchanger)
+	@if (_cycleComponent is PlateHeatExchanger)
 	{
 		<PHE />
 	}
@@ -56,10 +56,10 @@
 			<text x="45" y="15" fill="black">@($"W: {Math.Round(((IPowerConsumer)CycleComponent).PowerConsumption.Kilowatt, 1)} kW")</text>
 		</svg>
 	}
-	@if (CycleComponent is IHeatFlowExchanger && CycleComponent.PortA.Temperature != EngineeringUnits.Temperature.NaN)
+	@if (CycleComponent is IBoundary && CycleComponent.PortA.Temperature != EngineeringUnits.Temperature.NaN)
 	{
 		<svg height="65" width="200" y="0" style="user-select: none;">
-			<text x="45" y="15" fill="black">@($"Q: {Math.Round(((IHeatFlowExchanger)CycleComponent).HeatFlowExchanged.Kilowatt, 1)} kW")</text>
+			<text x="45" y="15" fill="black">@($"Q: {Math.Round(((IBoundary)CycleComponent).HeatFlowExchanged.Kilowatt, 1)} kW")</text>
 		</svg>
 	}
 </Draggable>
@@ -82,37 +82,41 @@ else
 	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75+25*Math.Cos(_angle*Math.PI/180)) Y=(Y+50+25*Math.Sin(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortBDirection PortIdentifier="@PortIdentifier.B" />
 }
 
-@if (_NPorts == 3)
+@if (_nPorts == 3)
 {
 	<DragDropPort OnPortInitialized=@(p => OnPortInitialized(p)) X=(X+75-25*Math.Sin(_angle*Math.PI/180)) Y=(Y+50+25*Math.Cos(_angle*Math.PI/180)) PortClicked="PortClicked" Parent="@this" Direction=@PortCDirection PortIdentifier="@PortIdentifier.C" />
 }
 
-@if (_ShowPropertyWindow)
+@if (_showPropertyWindow)
 {
 	<foreignObject x=@(X+90) y=@(Y+75) width="270" height="300" style="position:absolute; z-index: 10;" @onmousedown:stopPropagation>
 		<div xmlns="http://www.w3.org/1999/xhtml" style="border: 1px solid black; background-color: white; opacity: 1;">
-			<EditForm Model=_CycleComponent OnSubmit="() => {_ShowPropertyWindow = false;}">
+			<EditForm Model=_cycleComponent OnSubmit="() => {_showPropertyWindow = false;}">
 				<DataAnnotationsValidator />
 				<ValidationSummary />
-				@if (_CycleComponent is SimpleCompressor)
+				@if (_cycleComponent is SimpleCompressor)
 				{
-					<GenericForm Model=(SimpleCompressor)_CycleComponent />
+					<GenericForm Model=(SimpleCompressor)_cycleComponent />
 				}
-				@if (_CycleComponent is PRV)
+				@if (_cycleComponent is Prv)
 				{
-					<GenericForm Model=(PRV)_CycleComponent />
+					<GenericForm Model=(Prv)_cycleComponent />
 				}
-				@if (_CycleComponent is TemperatureBoundary)
+				@if (_cycleComponent is TemperatureBoundary)
 				{
-					<GenericForm Model=(TemperatureBoundary)_CycleComponent />
+					<GenericForm Model=(TemperatureBoundary)_cycleComponent />
 				}
-				@if (_CycleComponent is HeatFlowBoundary)
+				@if (_cycleComponent is HeatFlowBoundary)
 				{
-					<GenericForm Model=(HeatFlowBoundary)_CycleComponent />
+					<GenericForm Model=(HeatFlowBoundary)_cycleComponent />
 				}
-				@if (_CycleComponent is TeeSection)
+				@if (_cycleComponent is TeeSection)
 				{
-					<GenericForm Model=(TeeSection)_CycleComponent />
+					<GenericForm Model=(TeeSection)_cycleComponent />
+				}
+				@if (_cycleComponent is PlateHeatExchanger)
+				{
+					<GenericForm Model=(PlateHeatExchanger)_cycleComponent />
 				}
 				<button type="submit">OK</button>
 			</EditForm>
@@ -149,23 +153,23 @@ else
 	[Parameter]
 	public EventCallback<DragDrop> OnDragDropInitialized { get; set; }
 
-	private CycleComponent _CycleComponent;
+	private CycleComponent _cycleComponent;
 	[Parameter]
 	public CycleComponent CycleComponent { 
 		get
 		{
-			return _CycleComponent;
+			return _cycleComponent;
 		} 
 		set
 		{
-			_CycleComponent = value;
-			if (_CycleComponent is TeeSection)
+			_cycleComponent = value;
+			if (_cycleComponent is TeeSection)
 			{
-				_NPorts = 3;
+				_nPorts = 3;
 			}
 			else
 			{
-				_NPorts = 2;
+				_nPorts = 2;
 			}
 		}
 	}
@@ -173,7 +177,7 @@ else
 	[Parameter]
 	public string Name { get; set; }
 
-	private int _NPorts;
+	private int _nPorts;
 	private Connector.Direction PortADirection { get; set; } = Connector.Direction.Left;
 	private Connector.Direction PortBDirection { get; set; } = Connector.Direction.Right;
 	private Connector.Direction PortCDirection { get; set; } = Connector.Direction.Bottom;
@@ -181,7 +185,7 @@ else
 	private void OnPortInitialized(DragDropPort port)
 	{
 		Ports.Add(port);
-		if (Ports.Count == _NPorts)
+		if (Ports.Count == _nPorts)
 		{
 			OnDragDropInitialized.InvokeAsync(this);
 		}
@@ -192,7 +196,7 @@ else
 		await OnClickPortA.InvokeAsync(port);
 	}
 
-	bool _ShowPropertyWindow = false;
+	bool _showPropertyWindow = false;
 	private void OnClick(MouseEventArgs e)
 	{
 		if (e.Button == (long)0)
@@ -202,7 +206,7 @@ else
 		if (e.Button == (long)2)
 		{
 			OnDragDropClick.InvokeAsync(this);
-			_ShowPropertyWindow = !_ShowPropertyWindow;
+			_showPropertyWindow = !_showPropertyWindow;
 		}
 	}
 

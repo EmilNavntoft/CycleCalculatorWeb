@@ -3,6 +3,7 @@ using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 using EngineeringUnits;
 using System.ComponentModel.DataAnnotations;
 using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculator.CycleModel.Solver;
 using Microsoft.JSInterop;
 using CycleCalculatorWeb.CoolpropJsInterop;
 
@@ -18,29 +19,31 @@ namespace CycleCalculator.CycleModel.Model
 		[Editable(false)]
 		public CoolpropJsFluid Fluid { get; private set; }
 
-        private FluidNames _FluidType = FluidNames.Ammonia;
+        private FluidNames _fluidType = FluidNames.Ammonia;
 		public FluidNames FluidType
         {
             get
             {
-                return _FluidType;
+                return _fluidType;
             }
             set
             {
-                _FluidType = value;
-				Fluid.FluidName = _FluidType;
+                _fluidType = value;
+				Fluid.FluidName = _fluidType;
 
 				StartCascadeFluidTypeChange();
 			}
         }
-
 		[Editable(false)]
 		public Dictionary<PortIdentifier, Port> Ports { get; private set; } = new Dictionary<PortIdentifier, Port>();
 
-		public CycleComponent(string name, IJSInProcessObjectReference coolprop)
+        [Editable(false)]
+        public Dictionary<PortIdentifier, PortState> StoredPortStates { get; private set; } = new Dictionary<PortIdentifier, PortState>();
+        
+		public CycleComponent(string name, IJSInProcessObjectReference coolProp)
         {
             Name = name;
-            Fluid = new CoolpropJsFluid(coolprop);
+            Fluid = new CoolpropJsFluid(coolProp);
 		}
 
         public abstract void CalculateMassBalanceEquation(Port port);
@@ -171,6 +174,48 @@ namespace CycleCalculator.CycleModel.Model
                 ?? throw new SolverException($"Downstream ports for {Name} are undetermined");
 
             return downstreamPort;
+        }
+
+        public void StorePortStates()
+        {
+            foreach (var key in Ports.Keys)
+            {
+                StoredPortStates[key] = new PortState()
+                {
+                    PressureBars = Ports[key].Pressure.Bar,
+                    TemperatureCelsius = Ports[key].Temperature.DegreeCelsius,
+                    EnthalpyJoulePerKilogram = Ports[key].Enthalpy.JoulePerKilogram
+                };
+            }
+        }
+
+        public double CalculateResidual()
+        {
+            double pressureResidual = 0;
+            double temperatureResidual = 0;
+            double enthalpyResidual = 0;
+
+            foreach (var key in Ports.Keys)
+            {
+                double pr = StoredPortStates[key].PressureBars - Ports[key].Pressure.Bar;
+                double tr = StoredPortStates[key].TemperatureCelsius - Ports[key].Temperature.DegreeCelsius;
+                double hr = StoredPortStates[key].EnthalpyJoulePerKilogram - Ports[key].Enthalpy.JoulePerKilogram;
+
+                if (Math.Abs(pr) > Math.Abs(pressureResidual))
+                {
+                    pressureResidual = pr;
+                }
+                if (Math.Abs(tr) > Math.Abs(temperatureResidual))
+                {
+                    temperatureResidual = tr;
+                }
+                if (Math.Abs(hr) > Math.Abs(enthalpyResidual))
+                {
+                    enthalpyResidual = hr;
+                }
+            }
+
+            return new[] { pressureResidual, temperatureResidual, enthalpyResidual }.Max();
         }
     }
 }

@@ -9,7 +9,7 @@ using Microsoft.JSInterop;
 
 namespace CycleCalculator.CycleModel.Model
 {
-    public class TemperatureBoundary : CycleComponent, ITemperatureOrEnthalpySetter, IHeatFlowExchanger
+    public class TemperatureBoundary : CycleComponent, ITemperatureOrEnthalpySetter, IBoundary
 	{
         public enum TemperatureBoundaryMode
 		{
@@ -38,7 +38,7 @@ namespace CycleCalculator.CycleModel.Model
 				Temperature = Temperature.FromDegreeCelsius(value);
 			}
 		}
-		public TemperatureBoundary(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+		public TemperatureBoundary(string name, IJSInProcessObjectReference coolProp) : base(name, coolProp)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);

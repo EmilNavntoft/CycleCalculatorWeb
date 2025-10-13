@@ -1,30 +1,39 @@
-﻿using CycleCalculator.CycleModel.Model;
+﻿using System.ComponentModel.DataAnnotations;
+using CycleCalculator.CycleModel.Model;
 using CycleCalculator.CycleModel.Model.IO;
 using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 using Microsoft.JSInterop;
 using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculator.CycleModel.Model.Interfaces;
 using EngineeringUnits;
-using EngineeringUnits.Units;
 
 namespace CycleCalculatorWeb.CycleModel.Model
 {
-	public class PlateHeatExchanger : CycleComponent
+	public class PlateHeatExchanger : CycleComponent, IHeatExchanger
 	{
-		Port PortC { get; set; }
-		Port PortD { get; set; }
-		Area Area { get; set; } = Area.FromSquareMeter(1);
-		HeatTransferCoefficient HeatTransferCoefficientSideAB { get; set; } = HeatTransferCoefficient.FromWattPerSquareMeterKelvin(500);
-		HeatTransferCoefficient HeatTransferCoefficientSideCD { get; set; } = HeatTransferCoefficient.FromWattPerSquareMeterKelvin(500);
-		ThermalConductivity PlateThermalConductivity { get; set; } = ThermalConductivity.FromWattPerMeterKelvin(15);
-		Length PlateThickness { get; set; } = Length.FromMillimeter(1);
-		Dictionary<PortIdentifier, PortIdentifier> _InternalConnections = new() {
+		private Port PortC { get; set; }
+		private Port PortD { get; set; }
+		[Editable(false)]
+		public Area Area { get; set; } = Area.FromSquareMeter(1);
+		public HeatTransferCoefficient HeatTransferCoefficientSideAb { get; set; } = HeatTransferCoefficient.FromWattPerSquareMeterKelvin(50);
+		[Editable(false)]
+		public HeatTransferCoefficient HeatTransferCoefficientSideCd { get; set; } = HeatTransferCoefficient.FromWattPerSquareMeterKelvin(50);
+		[Editable(false)]
+		public ThermalConductivity PlateThermalConductivity { get; set; } = ThermalConductivity.FromWattPerMeterKelvin(15);
+		[Editable(false)]
+		public Length PlateThickness { get; set; } = Length.FromMillimeter(1);
+
+		private double Efficiency { get; set; } = 0.6;
+		
+		// Dictionary describing how the 4 ports are connected internally
+		private readonly Dictionary<PortIdentifier, PortIdentifier> _internalConnections = new() {
 			{A, B },
 			{B, A },
 			{C, D },
 			{D, C }
 		};
-		private bool _IsStable = false;
-		public PlateHeatExchanger(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+		private bool _isStable = false;
+		public PlateHeatExchanger(string name, IJSInProcessObjectReference coolProp) : base(name, coolProp)
 		{
 			PortA = new Port(A, this);
 			PortB = new Port(B, this);
@@ -45,7 +54,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
 
 			port.Pressure = port.Connection.Pressure;
 
-			PortIdentifier otherIdentifier = _InternalConnections[port.Identifier];
+			PortIdentifier otherIdentifier = _internalConnections[port.Identifier];
 			var otherPort = Ports[otherIdentifier];
 			otherPort.Pressure = port.Connection.Pressure;
 
@@ -63,7 +72,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
 			var negatedMassFlow = MassFlow.Zero - port.Connection.MassFlow; //Negate incoming massFlow in order to match reference frame of this component
 			port.MassFlow = negatedMassFlow;
 
-			PortIdentifier otherIdentifier = _InternalConnections[port.Identifier];
+			PortIdentifier otherIdentifier = _internalConnections[port.Identifier];
 
 			var otherPort = Ports[otherIdentifier];
 			otherPort.MassFlow = port.Connection.MassFlow;
@@ -81,19 +90,22 @@ namespace CycleCalculatorWeb.CycleModel.Model
 			port.Temperature = port.Connection.Temperature;
 			port.Enthalpy = port.Connection.Enthalpy;
 
-			PortIdentifier otherIdentifier = _InternalConnections[port.Identifier];
+			PortIdentifier otherIdentifier = _internalConnections[port.Identifier];
 
 			var otherPort = Ports[otherIdentifier];
-			otherPort.MassFlow = port.Connection.MassFlow;
-			otherPort.Temperature = port.Connection.Temperature;
-			otherPort.Enthalpy = port.Connection.Enthalpy;
+			if (otherPort.Temperature.IsNaN())
+			{
+				// Set temperature and enthalpy in the other port in the first iteration where values are NaN
+				otherPort.Temperature = port.Connection.Temperature;
+				otherPort.Enthalpy = port.Connection.Enthalpy;
+			}
 
 			otherPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(otherPort.Connection);
 		}
 
 		public override void CalculateMassBalanceEquation(Port port)
 		{
-			PortIdentifier otherIdentifier = _InternalConnections[port.Identifier];
+			PortIdentifier otherIdentifier = _internalConnections[port.Identifier];
 			var otherPort = Ports[otherIdentifier];
 
 			otherPort.MassFlow = MassFlow.Zero - port.MassFlow;
@@ -104,70 +116,85 @@ namespace CycleCalculatorWeb.CycleModel.Model
 			otherPort.Connection.Component.CalculateMassBalanceEquation(otherPort.Connection);
 		}
 
-		public override void CalculateHeatBalanceEquation(Port port)
+		public void CalculateHeatExchanger()
 		{
 			double dT1 = Math.Abs(PortA.Temperature.Kelvin - PortC.Temperature.Kelvin);
 			double dT2 = Math.Abs(PortB.Temperature.Kelvin - PortD.Temperature.Kelvin);
+			
+			List<Port> inletPorts = Ports.Values.ToList().FindAll(port => port.MassFlow > MassFlow.Zero);
+			List<Port> outletPorts = Ports.Values.ToList().FindAll(port => port.MassFlow < MassFlow.Zero);
+			
+			var hotInletPort = inletPorts.OrderBy(port => port.Temperature).Last();
+			var hotOutletPort =  Ports[_internalConnections[hotInletPort.Identifier]];
+			var coldInletPort = inletPorts.OrderBy(port => port.Temperature).First();
+			var coldOutletPart = Ports[_internalConnections[coldInletPort.Identifier]];
+			
+			Fluid.UpdatePT(hotInletPort.Pressure, coldInletPort.Temperature);
+			var hHotOutMin = Fluid.Enthalpy;
+			var qMaxHot = (hotInletPort.Enthalpy - hHotOutMin) * hotInletPort.MassFlow;
+			
+			Fluid.UpdatePT(coldInletPort.Pressure, hotInletPort.Temperature);
+			var hColdOutMax = Fluid.Enthalpy;
+			var qMaxCold = (hColdOutMax - coldInletPort.Enthalpy) * coldInletPort.MassFlow;
 
-			Temperature LMTD;
-			if (dT1 == dT2)
+			var smallestQ = new[] { qMaxCold, qMaxCold }.Min();
+
+			Power q = smallestQ * Efficiency;
+				
+			foreach (var outletPort in outletPorts)
 			{
-				LMTD = Temperature.FromKelvin(dT1);
-			}
-			else if (dT1 == 0 || dT2 == 0) 
-			{
-				LMTD = Temperature.FromKelvin(0);
-			}
-			else
-			{
-				double ln = Math.Log(dT1 / dT2);
-				LMTD = Temperature.FromKelvin((dT1 - dT2) / ln);
-			}
-
-			HeatTransferCoefficient U = HeatTransferCoefficientSideAB + PlateThermalConductivity / PlateThickness + HeatTransferCoefficientSideCD;
-
-			Power Q = U * Area * LMTD;
-
-			List<Port> hotSidePorts = new List<Port>();
-			if (PortA.Temperature > PortC.Temperature)
-			{
-				hotSidePorts.Add(PortA);
-				hotSidePorts.Add(PortB);
-			}
-            else
-
-            {
-				hotSidePorts.Add(PortC);
-				hotSidePorts.Add(PortD);
-            }
-
-            List<Port> outletPorts = Ports.Values.ToList().FindAll(port => port.MassFlow < MassFlow.Zero);
-
-            foreach (var outletPort in outletPorts)
-            {
-				PortIdentifier internalConnectionIdentifier = _InternalConnections[outletPort.Identifier];
+				PortIdentifier internalConnectionIdentifier = _internalConnections[outletPort.Identifier];
 				Port internalConnection = Ports[internalConnectionIdentifier];
 
-				if (hotSidePorts.Contains(outletPort))
+				if (outletPort == hotOutletPort)
 				{
-					outletPort.Enthalpy = internalConnection.Enthalpy - Q / internalConnection.MassFlow;
+					outletPort.Enthalpy = internalConnection.Enthalpy - q / internalConnection.MassFlow;
 				}
 				else
 				{
-					outletPort.Enthalpy = internalConnection.Enthalpy + Q / internalConnection.MassFlow;
-				}
+					outletPort.Enthalpy = internalConnection.Enthalpy + q / internalConnection.MassFlow;
+				}		
 				Fluid.UpdatePH(outletPort.Pressure, outletPort.Enthalpy);
 				outletPort.Temperature = Fluid.Temperature;
-            }
+			}
+		}
 
-			PortIdentifier otherIdentifier = _InternalConnections[port.Identifier];
+		public override void CalculateHeatBalanceEquation(Port port)
+		{
+			PortIdentifier otherIdentifier = _internalConnections[port.Identifier];
 			var otherPort = Ports[otherIdentifier];
-			otherPort.Connection.Component.CalculateHeatBalanceEquation(otherPort.Connection);
-        }
+			
+			if (port.Enthalpy == otherPort.Enthalpy)
+			{
+				otherPort.Enthalpy = Ports.Values.ToList().First(x => x.Enthalpy != port.Enthalpy).Enthalpy * 0.99;
+				var otherTemperature = otherPort.Temperature = Ports.Values.ToList().First(x => x.Enthalpy != port.Enthalpy).Temperature;
+				if (otherTemperature > otherPort.Temperature)
+				{
+					otherPort.Temperature = otherTemperature - Temperature.FromKelvin(0.1);
+
+				}
+				else
+				{
+					otherPort.Temperature = otherTemperature + Temperature.FromKelvin(0.1);
+				}
+				
+				Fluid.UpdatePT(port.Pressure, otherPort.Temperature);
+				otherPort.Enthalpy = Fluid.Enthalpy;
+				
+				TransferState(otherPort);
+				otherPort.Connection.Component.CalculateHeatBalanceEquation(otherPort.Connection);
+			}
+			else
+			{
+				// Simply transfer state without change
+				TransferState(otherPort);
+				otherPort.Connection.Component.CalculateHeatBalanceEquation(otherPort.Connection);
+			}
+		}
 
 		public override void CalculatePressureDrop(Port port)
 		{
-			PortIdentifier otherIdentifier = _InternalConnections[port.Identifier];
+			PortIdentifier otherIdentifier = _internalConnections[port.Identifier];
 			var otherPort = Ports[otherIdentifier];
 			otherPort.Pressure = port.Pressure;
 

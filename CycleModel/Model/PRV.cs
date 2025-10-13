@@ -8,7 +8,7 @@ using Microsoft.JSInterop;
 
 namespace CycleCalculator.CycleModel.Model
 {
-    public class PRV : CycleComponent
+    public class Prv : CycleComponent
     {
         [Editable(false)]
         public Pressure OutletPressure { get; set; } = Pressure.FromBar(1);
@@ -26,7 +26,7 @@ namespace CycleCalculator.CycleModel.Model
 			}
 		}
 
-		public PRV(string name, IJSInProcessObjectReference coolprop) : base(name, coolprop)
+		public Prv(string name, IJSInProcessObjectReference coolProp) : base(name, coolProp)
         {
             PortA = new Port(A, this);
             PortB = new Port(B, this);
