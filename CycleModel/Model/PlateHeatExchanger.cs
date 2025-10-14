@@ -137,7 +137,7 @@ namespace CycleCalculatorWeb.CycleModel.Model
 			var hColdOutMax = Fluid.Enthalpy;
 			var qMaxCold = (hColdOutMax - coldInletPort.Enthalpy) * coldInletPort.MassFlow;
 
-			var smallestQ = new[] { qMaxCold, qMaxCold }.Min();
+			var smallestQ = new[] { qMaxHot, qMaxCold }.Min();
 
 			Power q = smallestQ * Efficiency;
 				
@@ -164,32 +164,9 @@ namespace CycleCalculatorWeb.CycleModel.Model
 			PortIdentifier otherIdentifier = _internalConnections[port.Identifier];
 			var otherPort = Ports[otherIdentifier];
 			
-			if (port.Enthalpy == otherPort.Enthalpy)
-			{
-				otherPort.Enthalpy = Ports.Values.ToList().First(x => x.Enthalpy != port.Enthalpy).Enthalpy * 0.99;
-				var otherTemperature = otherPort.Temperature = Ports.Values.ToList().First(x => x.Enthalpy != port.Enthalpy).Temperature;
-				if (otherTemperature > otherPort.Temperature)
-				{
-					otherPort.Temperature = otherTemperature - Temperature.FromKelvin(0.1);
-
-				}
-				else
-				{
-					otherPort.Temperature = otherTemperature + Temperature.FromKelvin(0.1);
-				}
-				
-				Fluid.UpdatePT(port.Pressure, otherPort.Temperature);
-				otherPort.Enthalpy = Fluid.Enthalpy;
-				
-				TransferState(otherPort);
-				otherPort.Connection.Component.CalculateHeatBalanceEquation(otherPort.Connection);
-			}
-			else
-			{
-				// Simply transfer state without change
-				TransferState(otherPort);
-				otherPort.Connection.Component.CalculateHeatBalanceEquation(otherPort.Connection);
-			}
+			// Simply transfer state without change
+			TransferState(otherPort);
+			otherPort.Connection.Component.CalculateHeatBalanceEquation(otherPort.Connection);
 		}
 
 		public override void CalculatePressureDrop(Port port)

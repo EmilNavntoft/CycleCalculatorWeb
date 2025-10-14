@@ -14,7 +14,7 @@
 @using static CycleCalculatorWeb.GUI.DragDropComponents.Draggable
 ﻿@using static CycleCalculatorWeb.GUI.DragDropComponents.Connector
 @inject MouseService MouseSrv
-@inject IJSRuntime Js
+@inject IJSRuntime JS
 
 
 <div>
@@ -22,31 +22,38 @@
 </div>
 
 <svg class="dropWindow" height="3840" width="2160" tabindex="0"
-	 @onmousemove="@(e => MouseSrv.FireMove(this, e))"
-	 @onmouseup="@(e => MouseSrv.FireUp(this, e))"
-	 @onmouseleave="@(e => MouseSrv.FireLeave(this, e))"
-	 @onclick="OnBackgroundClick"
-	 @onkeydown="OnKeyDown">
+     @onmousemove="@(e => MouseSrv.FireMove(this, e))"
+     @onmouseup="@(e => MouseSrv.FireUp(this, e))"
+     @onmouseleave="@(e => MouseSrv.FireLeave(this, e))"
+     @onclick="OnBackgroundClick"
+     @onkeydown="OnKeyDown">
+	
+
 
 	@foreach (var connector in _connectors)
 	{
 		<Connector @key="connector" X1=@(connector.ConnectionOne.X)
-				   Y1=@(connector.ConnectionOne.Y)
-				   Dir1=@connector.ConnectionOne.Direction
-				   X2=@(connector.ConnectionTwo.X)
-				   Y2=@(connector.ConnectionTwo.Y)
-				   Dir2=@connector.ConnectionTwo.Direction
-				   OnClick="@(c => ConnectorClicked(c, connector))" />
+		           Y1=@(connector.ConnectionOne.Y)
+		           Dir1=@connector.ConnectionOne.Direction
+		           X2=@(connector.ConnectionTwo.X)
+		           Y2=@(connector.ConnectionTwo.Y)
+		           Dir2=@connector.ConnectionTwo.Direction
+		           OnClick="@(c => ConnectorClicked(c, connector))"/>
 	}
 
 	@foreach (var dragDrop in _dragDrops)
 	{
-		<DragDrop @key=@dragDrop Name=@dragDrop.Name InitialX=@dragDrop.X InitialY=@dragDrop.Y OnDragDropInitialized="@(d => DragDropInitialized(d, dragDrop))" OnDragDropUp="@(d => DragDropUp(d, dragDrop))" OnDragDropClick="@(d => DragDropClicked(d, dragDrop))" OnClickPortA="@(port => PortClicked(port))" OnClickPortB="@(port => PortClicked(port))" OnClickPortC="@(port => PortClicked(port))" CycleComponent=dragDrop.CycleComponent />
+		<DragDrop @key=@dragDrop Name=@dragDrop.Name InitialX=@dragDrop.X InitialY=@dragDrop.Y OnDragDropInitialized="@(d => DragDropInitialized(d, dragDrop))" OnDragDropUp="@(d => DragDropUp(d, dragDrop))" OnDragDropClick="@(d => DragDropClicked(d, dragDrop))" OnClickPortA="@(port => PortClicked(port))" OnClickPortB="@(port => PortClicked(port))" OnClickPortC="@(port => PortClicked(port))" CycleComponent=dragDrop.CycleComponent/>
 	}
 </svg>
 <button class="btn btn-primary" id="runButton" @onclick="RunCalculation">Run</button>
 <button class="btn btn-primary" id="saveButton" @onclick="Save">Save</button>
-<button class="btn btn-primary" id="loadButton" @onclick="LoadSaveFileData">Load</button>
+<p class="uploadButton">
+	<label>
+		Upload a save file:
+		<InputFile OnChange="@LoadSaveFileData"/>
+	</label>
+</p>
 
 @code {
 	private List<DragDrop> _dragDrops = new List<DragDrop>();
@@ -57,36 +64,47 @@
 	{
 		if (firstRender)
 		{
-			var jsInProcess = (IJSInProcessRuntime)Js;
-			_coolpropJs = await Js.InvokeAsync<IJSInProcessObjectReference>("import", "./js/functions.js");
-			JsLogger.JsRuntime = Js;
+			var jsInProcess = (IJSInProcessRuntime)JS;
+			_coolpropJs = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./js/functions.js");
+			JsLogger.JsRuntime = JS;
 		}
 	}
 
-	public async void Save()
+	public async Task Save()
 	{
-		AddPhe();
-		// SaveFile saveFile = new();
-		// foreach (var dragDrop in DragDrops)
-		// {
-		// 	DragDropSaveFileDao dao = DragDropSaveFileDao.Build(dragDrop);
-		// 	saveFile.DragDropDaos.Add(dao);
-		// }
+		//AddPhe();
+		
+		SaveFile saveFile = new();
+		foreach (var dragDrop in _dragDrops)
+		{
+			DragDropSaveFileDao dao = DragDropSaveFileDao.Build(dragDrop);
+			saveFile.DragDropDaos.Add(dao);
+		}
 
-		// foreach (var connector in Connectors)
-		// {
-		// 	ConnectorSaveFileDao dao = ConnectorSaveFileDao.Build(connector);
-		// 	saveFile.ConnectorDaos.Add(dao); 
-		// }
-		// var text = saveFile.Serialize();
-		// var bytes = System.Text.Encoding.UTF8.GetBytes(text);
-		// await FileUtil.SaveAs(js, "CycleCalculatorSave.json", bytes);
+		foreach (var connector in _connectors)
+		{
+			ConnectorSaveFileDao dao = ConnectorSaveFileDao.Build(connector);
+			saveFile.ConnectorDaos.Add(dao); 
+		}
+		var text = saveFile.Serialize();
+		var bytes = Encoding.UTF8.GetBytes(text);
+		var fileStream = new MemoryStream(bytes);
+		using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+		await JS.InvokeVoidAsync("saveAsFile", "savefile.json", streamRef);
 	}
 
 	SaveFile? _loadedSaveFile;
-	public async void LoadSaveFileData()
+	public async void LoadSaveFileData(InputFileChangeEventArgs e)
 	{
-		_loadedSaveFile = await SaveFile.OpenLoadDialog();
+		MemoryStream ms = new MemoryStream();
+		await e.File.OpenReadStream().CopyToAsync(ms);
+		var bytes = ms.ToArray();
+		
+		string result = System.Text.Encoding.UTF8.GetString(bytes);
+		
+		_loadedSaveFile = SaveFile.Deserialize(result);
+		
 		if (_loadedSaveFile != null)
 		{
 			BuildLoadedSaveFileDragDrops();
@@ -107,15 +125,18 @@
 			dragDrop.InitialX = dragDropDao.X;
 			dragDrop.InitialY = dragDropDao.Y;
 
-			var type = Type.GetType(dragDropDao.CycleComponentTypeString);
-			var component = Activator.CreateInstance(type, new object[] { dragDropDao.Name });
+			Type type = Type.GetType(dragDropDao.CycleComponentTypeString);
+			var component = Activator.CreateInstance(type, new object[] { dragDropDao.Name, _coolpropJs });
 
 			foreach (var propertyValuePair in dragDropDao.CycleComponentPropertyData)
 			{
 				var propertyInfo = type.GetProperty(propertyValuePair.Key);
-				if (propertyValuePair.Key == "FluidType")
+				if (propertyInfo.PropertyType.IsEnum)
 				{
-					propertyInfo.SetValue(component, (FluidList)(int)(Int64)propertyValuePair.Value);
+					Type enumType = propertyInfo.PropertyType;
+					object value = Enum.ToObject(enumType, propertyValuePair.Value);
+					
+					propertyInfo.SetValue(component, value);
 				}
 				else
 				{

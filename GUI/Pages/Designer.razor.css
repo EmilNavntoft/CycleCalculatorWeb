@@ -18,40 +18,20 @@
     z-index: 0;
 }
 
-#addCompButton {
+.uploadButton {
     position: absolute;
-    left: 300px;
+    left: 1000px;
     z-index: 1;
 }
-#addPrvButton {
-    position: absolute;
-    left: 400px;
-    z-index: 1;
-}
+
 #runButton {
     position: absolute;
     left: 500px;
-    z-index: 1;
-}
-#addTbButton {
-    position: absolute;
-    left: 600px;
-    z-index: 1;
-}
-#addTeeButton {
-    position: absolute;
-    left: 700px;
     z-index: 1;
 }
 
 #saveButton {
     position: absolute;
     left: 800px;
-    z-index: 1;
-}
-
-#loadButton {
-    position: absolute;
-    left: 900px;
     z-index: 1;
 }

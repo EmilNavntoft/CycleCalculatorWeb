@@ -197,19 +197,19 @@ namespace CycleCalculator.CycleModel.Model
 
             foreach (var key in Ports.Keys)
             {
-                double pr = StoredPortStates[key].PressureBars - Ports[key].Pressure.Bar;
-                double tr = StoredPortStates[key].TemperatureCelsius - Ports[key].Temperature.DegreeCelsius;
-                double hr = StoredPortStates[key].EnthalpyJoulePerKilogram - Ports[key].Enthalpy.JoulePerKilogram;
+                double pr = Math.Abs((StoredPortStates[key].PressureBars - Ports[key].Pressure.Bar) / StoredPortStates[key].PressureBars);
+                double tr = Math.Abs((StoredPortStates[key].TemperatureCelsius - Ports[key].Temperature.DegreeCelsius) / StoredPortStates[key].TemperatureCelsius);
+                double hr = Math.Abs((StoredPortStates[key].EnthalpyJoulePerKilogram - Ports[key].Enthalpy.JoulePerKilogram) / StoredPortStates[key].EnthalpyJoulePerKilogram);
 
-                if (Math.Abs(pr) > Math.Abs(pressureResidual))
+                if (pr > pressureResidual)
                 {
                     pressureResidual = pr;
                 }
-                if (Math.Abs(tr) > Math.Abs(temperatureResidual))
+                if (tr > temperatureResidual)
                 {
                     temperatureResidual = tr;
                 }
-                if (Math.Abs(hr) > Math.Abs(enthalpyResidual))
+                if (hr > enthalpyResidual)
                 {
                     enthalpyResidual = hr;
                 }

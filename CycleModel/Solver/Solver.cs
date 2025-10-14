@@ -241,15 +241,15 @@ namespace CycleCalculator.CycleModel.Solver
    //         return cycleComponents;
    //     }
 
-        private static List<CycleComponent> _cycleComponents;
+        private static List<CycleComponent> cycleComponents;
 
         public static void Reset()
         {
-            if (_cycleComponents is null || _cycleComponents.Count == 0)
+            if (cycleComponents is null || cycleComponents.Count == 0)
             {
                 return;
             }
-			foreach (CycleComponent component in _cycleComponents)
+			foreach (CycleComponent component in cycleComponents)
 			{
 				foreach (Port port in component.Ports.Values)
 				{
@@ -263,57 +263,31 @@ namespace CycleCalculator.CycleModel.Solver
 
         public static void Solve()
         {
-            _cycleComponents = LayoutBuilder.CycleComponents;
-            List<IPressureSetter> pressureSetters = _cycleComponents.FindAll(c => c is IPressureSetter).Cast<IPressureSetter>().ToList();
-            List<IMassFlowSetter> massFlowSetters = _cycleComponents.FindAll(c => c is IMassFlowSetter).Cast<IMassFlowSetter>().ToList();
-            List<ITemperatureOrEnthalpySetter> temperatureOrEnthalpySetters = _cycleComponents.FindAll(c => c is ITemperatureOrEnthalpySetter).Cast<ITemperatureOrEnthalpySetter>().ToList();
-            List<IHeatExchanger> heatExchangers = _cycleComponents.FindAll(c => c is IHeatExchanger).Cast<IHeatExchanger>().ToList();
-            List<TeeSection> tees = _cycleComponents.FindAll(c => c is TeeSection).Cast<TeeSection>().ToList();
-            List<Pipe> pipes = _cycleComponents.FindAll(c => c is Pipe).Cast<Pipe>().ToList();
+            cycleComponents = LayoutBuilder.CycleComponents;
+            List<IPressureSetter> pressureSetters = cycleComponents.FindAll(c => c is IPressureSetter).Cast<IPressureSetter>().ToList();
+            List<IMassFlowSetter> massFlowSetters = cycleComponents.FindAll(c => c is IMassFlowSetter).Cast<IMassFlowSetter>().ToList();
+            List<ITemperatureOrEnthalpySetter> temperatureOrEnthalpySetters = cycleComponents.FindAll(c => c is ITemperatureOrEnthalpySetter).Cast<ITemperatureOrEnthalpySetter>().ToList();
+            List<IHeatExchanger> heatExchangers = cycleComponents.FindAll(c => c is IHeatExchanger).Cast<IHeatExchanger>().ToList();
+            List<TeeSection> tees = cycleComponents.FindAll(c => c is TeeSection).Cast<TeeSection>().ToList();
+            List<Pipe> pipes = cycleComponents.FindAll(c => c is Pipe).Cast<Pipe>().ToList();
             
             Stopwatch stopwatch = Stopwatch.StartNew();
             
             try
             {
-				CascadeKnownPressures(pressureSetters);
-				CascadeKnownMassflows(massFlowSetters);
-				PerformMassBalanceCalculations(massFlowSetters);
-				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
-				PerformPressureDropCalculations(pressureSetters);
-				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
-				PerformHeatExchangerCalculattions(heatExchangers);
-				
-				CascadeKnownPressures(pressureSetters);
-				CascadeKnownMassflows(massFlowSetters);
-				PerformMassBalanceCalculations(massFlowSetters);
-				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
-				PerformPressureDropCalculations(pressureSetters);
-				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
-				PerformHeatExchangerCalculattions(heatExchangers);
-				
-				CascadeKnownPressures(pressureSetters);
-				CascadeKnownMassflows(massFlowSetters);
-				PerformMassBalanceCalculations(massFlowSetters);
-				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
-				PerformPressureDropCalculations(pressureSetters);
-				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
-				PerformHeatExchangerCalculattions(heatExchangers);
-				
-				CascadeKnownPressures(pressureSetters);
-				CascadeKnownMassflows(massFlowSetters);
-				PerformMassBalanceCalculations(massFlowSetters);
-				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
-				PerformPressureDropCalculations(pressureSetters);
-				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
-				PerformHeatExchangerCalculattions(heatExchangers);
-				
-				CascadeKnownPressures(pressureSetters);
-				CascadeKnownMassflows(massFlowSetters);
-				PerformMassBalanceCalculations(massFlowSetters);
-				CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
-				PerformPressureDropCalculations(pressureSetters);
-				PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
-				PerformHeatExchangerCalculattions(heatExchangers);
+	            int iteration = 1;
+	            while (!IsStable(iteration, cycleComponents))
+	            {
+		            CascadeKnownPressures(pressureSetters);
+		            CascadeKnownMassflows(massFlowSetters);
+		            PerformMassBalanceCalculations(massFlowSetters);
+		            CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
+		            PerformPressureDropCalculations(pressureSetters);
+		            PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
+		            PerformHeatExchangerCalculations(heatExchangers);
+		            StorePortStates(cycleComponents);
+		            iteration++;
+	            }
             }
             catch (Exception ex)
             {
@@ -350,7 +324,7 @@ namespace CycleCalculator.CycleModel.Solver
             }
         }
 
-        private static void PerformHeatExchangerCalculattions(List<IHeatExchanger> heatExchangers)
+        private static void PerformHeatExchangerCalculations(List<IHeatExchanger> heatExchangers)
         {
 	        //Calculate heat exchangers
 	        foreach (IHeatExchanger heatExchanger in heatExchangers)
@@ -398,6 +372,33 @@ namespace CycleCalculator.CycleModel.Solver
                 massFlowSetter.CascadeMassFlowUpstream();
                 massFlowSetter.CascadeMassFlowDownstream();
             }
+        }
+
+        private static void StorePortStates(List<CycleComponent> components)
+        {
+	        foreach (CycleComponent component in components)
+	        {
+		        component.StorePortStates();
+	        }
+        }
+
+        private static bool IsStable(int iteration, List<CycleComponent> components)
+        {
+	        if (iteration <= 2)
+	        {
+		        return false;
+	        }
+	        double largesResidual = 0;
+	        foreach (CycleComponent component in components)
+	        {
+		        double res = component.CalculateResidual();
+		        if (res > largesResidual)
+		        {
+			        largesResidual = res;	
+		        }
+	        }
+
+	        return largesResidual < 0.001;
         }
     }
 }
