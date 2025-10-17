@@ -17,19 +17,19 @@ namespace CycleCalculator.CycleModel.Model
 		[Editable(false)]
 		public Port PortB { get; set; }
 		[Editable(false)]
-		public CoolpropJsFluid Fluid { get; private set; }
+		public CoolpropJsFluid Fluid1 { get; private set; }
 
-        private FluidNames _fluidType = FluidNames.Ammonia;
-		public FluidNames FluidType
+        private FluidName _fluidType1 = FluidName.Ammonia;
+		public FluidName FluidType1
         {
             get
             {
-                return _fluidType;
+                return _fluidType1;
             }
             set
             {
-                _fluidType = value;
-				Fluid.FluidName = _fluidType;
+                _fluidType1 = value;
+				Fluid1.FluidName = _fluidType1;
 
 				StartCascadeFluidTypeChange();
 			}
@@ -43,27 +43,36 @@ namespace CycleCalculator.CycleModel.Model
 		public CycleComponent(string name, IJSInProcessObjectReference coolProp)
         {
             Name = name;
-            Fluid = new CoolpropJsFluid(coolProp);
+            Fluid1 = new CoolpropJsFluid(coolProp);
 		}
 
         public abstract void CalculateMassBalanceEquation(Port port);
 
-        public abstract void CalculateHeatBalanceEquation(Port port);
+        public virtual void CalculateHeatBalanceEquation(Port port)
+        {
+            if (!Ports.ContainsValue(port))
+            {
+                throw new SolverException($"Cascaded port does not belong to {Name}");
+            }
+
+            var otherIdentifier = port.Identifier == A ? B : A;
+            var otherPort = Ports[otherIdentifier];
+            port.CopyThermalStateTo(otherPort);
+            
+            TransferThermalState();
+            otherPort.Connection.Component.CalculateHeatBalanceEquation(otherPort.Connection);
+        }
 
         public virtual void CalculatePressureDrop(Port port)
         {
             var downstreamPort = GetDownstreamPort();
             downstreamPort.Pressure = GetUpstreamPort().Pressure;
 
-            TransferState();
+            TransferThermalState();
             downstreamPort.Connection.Component.CalculatePressureDrop(downstreamPort.Connection);
         }
-        public virtual bool IsMassBalanceEquationIndeterminate()
-        {
-            return Ports.Values.All(port => port.MassFlow == MassFlow.NaN);
-        }
 
-        public virtual void TransferState()
+        public virtual void TransferThermalState()
         {
             foreach (Port port in Ports.Values)
             {
@@ -77,7 +86,7 @@ namespace CycleCalculator.CycleModel.Model
                     throw new SolverException($"Port {port.Identifier} of {port.Component} has null connection");
                 }
 
-                port.Connection.ReceiveState();
+                port.Connection.ReceiveThermalStateFromConnection();
             }
         }
 
@@ -115,49 +124,31 @@ namespace CycleCalculator.CycleModel.Model
             otherPort.Connection.Component.ReceiveAndCascadeMassFlow(otherPort.Connection);
         }
 
-        public virtual void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
-        {
-            if (!Ports.ContainsValue(port))
-            {
-                throw new SolverException($"Cascaded port does not belong to {Name}");
-            }
-
-            port.Temperature = port.Connection.Temperature;
-            port.Enthalpy = port.Connection.Enthalpy;
-
-            var otherIdentifier = port.Identifier == A ? B : A;
-            var otherPort = Ports[otherIdentifier];
-            otherPort.MassFlow = port.Connection.MassFlow;
-            otherPort.Temperature = port.Connection.Temperature;
-            otherPort.Enthalpy = port.Connection.Enthalpy;
-
-            otherPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(otherPort.Connection);
-        }
-
         public virtual void StartCascadeFluidTypeChange()
         {
-            foreach (var port in Ports.Values)
+            if (PortA.Connection != null)
             {
-                if (port.Connection != null && port.Connection.Component.FluidType != FluidType)
-                {
-                    port.Connection.Component.CascadeFluidTypeChange(FluidType);
-				}
+                PortA.Connection.Component.CascadeFluidTypeChange(PortA.Connection, FluidType1);
+            }
+            if (PortB.Connection != null)
+            {
+                PortB.Connection.Component.CascadeFluidTypeChange(PortB.Connection, FluidType1);
             }
         }
 
-        public virtual void CascadeFluidTypeChange(FluidNames fluidName)
+        public virtual void CascadeFluidTypeChange(Port port, FluidName fluidName)
         {
-            if (FluidType != fluidName)
+            if (FluidType1 == fluidName)
             {
-                FluidType = fluidName;
-				foreach (var port in Ports.Values)
-				{
-					if (port.Connection != null && port.Connection.Component.FluidType != FluidType)
-					{
-						port.Connection.Component.CascadeFluidTypeChange(FluidType);
-					}
-				}
-			}
+                return;
+            }
+            FluidType1 = fluidName;
+            var otherIdentifier = port.Identifier == A ? B : A;
+            var otherPort = Ports[otherIdentifier];
+            if (otherPort.Connection != null)
+            {
+                otherPort.Connection.Component.CascadeFluidTypeChange(otherPort.Connection, fluidName);
+            }
         }
 
 

@@ -12,6 +12,7 @@ namespace CycleCalculator.CycleModel.Model.Enums
 		Valve,
 		TemperatureBoundary,
 		HeatFlowBoundary,
+		HeatExchanger,
 		TeeSection,
 		Pipe,
 		Sensor

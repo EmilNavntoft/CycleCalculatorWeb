@@ -31,49 +31,20 @@ namespace CycleCalculator.CycleModel.Model
 
             downstreamPort.MassFlow = MassFlow.Zero - upstreamPort.MassFlow;
 
-            TransferState();
+            TransferThermalState();
         }
 
         public override void CalculateHeatBalanceEquation(Port _)
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
-            Fluid.UpdatePH(downstreamPort.Pressure, upstreamPort.Enthalpy);
-            downstreamPort.Temperature = Fluid.Temperature;
-            downstreamPort.Enthalpy = Fluid.Enthalpy;
-            _density = Fluid.Density;
+            Fluid1.UpdatePH(downstreamPort.Pressure, upstreamPort.Enthalpy);
+            downstreamPort.Temperature = Fluid1.Temperature;
+            downstreamPort.Enthalpy = Fluid1.Enthalpy;
+            _density = Fluid1.Density;
 
-            TransferState();
+            TransferThermalState();
             downstreamPort.Connection.Component.CalculateHeatBalanceEquation(downstreamPort.Connection);
-        }
-
-        public override void CalculatePressureDrop(Port _)
-        {
-            Port upstreamPort = GetUpstreamPort();
-            Port downstreamPort = GetDownstreamPort();
-
-            VolumeFlow volumeFlow = VolumeFlow.Zero;
-            if (upstreamPort.Enthalpy != Enthalpy.NaN)
-            {
-                Fluid.UpdatePH(upstreamPort.Pressure, upstreamPort.Enthalpy);
-                volumeFlow = upstreamPort.MassFlow / Fluid.Density;
-            } 
-            else if (upstreamPort.Temperature != Temperature.NaN)
-            {
-                Fluid.UpdatePT(upstreamPort.Pressure, upstreamPort.Temperature);
-                volumeFlow = upstreamPort.MassFlow / Fluid.Density;
-            } 
-            else
-            {
-                return;
-                //volumeFlow = upstreamPort.MassFlow / Density.FromKilogramPerCubicMeter(10);
-            }
-
-
-            downstreamPort.Pressure = upstreamPort.Pressure - Pressure.FromBar(PressureDropCoefficient * Math.Pow(volumeFlow.CubicMeterPerSecond, 2));
-
-            TransferState();
-            downstreamPort.Connection.Component.CalculatePressureDrop(downstreamPort.Connection);
         }
 
         public override void ReceiveAndCascadePressure(Port port)
@@ -86,33 +57,10 @@ namespace CycleCalculator.CycleModel.Model
             port.Pressure = port.Connection.Pressure;
         }
 
-        public override void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
-        {
-            if (!Ports.ContainsValue(port))
-            {
-                throw new SolverException($"Cascaded port does not belong to {Name}");
-            }
-
-            port.Temperature = port.Connection.Temperature;
-            port.Enthalpy = port.Connection.Enthalpy;
-
-            var otherIdentifier = port.Identifier == A ? B : A;
-            var otherPort = Ports[otherIdentifier];
-            otherPort.Temperature = port.Connection.Temperature;
-            otherPort.Enthalpy = port.Connection.Enthalpy;
-
-            otherPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(otherPort.Connection);
-        }
-
-        public override bool IsMassBalanceEquationIndeterminate()
-        {
-            return Ports.Values.All(port => port.MassFlow == MassFlow.NaN);
-        }
-
         public void CascadePressureDownstream()
         {
             Port downstreamPort = GetDownstreamPort();
-            downstreamPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(downstreamPort.Connection);
+            downstreamPort.Connection.Component.ReceiveAndCascadePressure(downstreamPort.Connection);
         }
     }
 }

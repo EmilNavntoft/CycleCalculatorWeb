@@ -4,6 +4,7 @@ using EngineeringUnits;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculatorWeb.CoolpropJsInterop;
 using Microsoft.JSInterop;
 
 namespace CycleCalculator.CycleModel.Model
@@ -49,7 +50,7 @@ namespace CycleCalculator.CycleModel.Model
             
             downstreamPort.Pressure = OutletPressure;
 
-            TransferState();
+            TransferThermalState();
 
 			downstreamPort.Connection.Component.CalculateMassBalanceEquation(downstreamPort.Connection);
 		}
@@ -58,28 +59,17 @@ namespace CycleCalculator.CycleModel.Model
         {
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
-            Fluid.UpdatePH(downstreamPort.Pressure, upstreamPort.Enthalpy);
-            downstreamPort.Temperature = Fluid.Temperature;
+            double t = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'T', 'P', downstreamPort.Pressure.Pascal, 'H', upstreamPort.Enthalpy.JoulePerKilogram, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+            double x = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'Q', 'P', downstreamPort.Pressure.Pascal, 'H', upstreamPort.Enthalpy.JoulePerKilogram, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+
+            downstreamPort.Temperature = Temperature.FromKelvin(t);
             downstreamPort.Enthalpy = upstreamPort.Enthalpy;
-
-            TransferState();
-            downstreamPort.Connection.Component.CalculateHeatBalanceEquation(downstreamPort.Connection);
-        }
-
-        public override void CalculatePressureDrop(Port _)
-        {
-            Port upstreamPort = GetUpstreamPort();
-            Port downstreamPort = GetDownstreamPort();
-
-            if (upstreamPort.Pressure < OutletPressure)
-            {
-                throw new SolverException($"Upstream pressure of PRV {Name} is lower than the specified outlet pressure");
-            }
-
             downstreamPort.Pressure = OutletPressure;
+            downstreamPort.Quality = x;
+            
 
-            TransferState();
-            downstreamPort.Connection.Component.CalculatePressureDrop(downstreamPort.Connection);
+            TransferThermalState();
+            downstreamPort.Connection.Component.CalculateHeatBalanceEquation(downstreamPort.Connection);
         }
 
         public override void ReceiveAndCascadePressure(Port port)
@@ -91,38 +81,12 @@ namespace CycleCalculator.CycleModel.Model
 
             port.Pressure = port.Connection.Pressure;
         }
-
-        public override void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
-        {
-            if (!Ports.ContainsValue(port))
-            {
-                throw new SolverException($"Cascaded port does not belong to {Name}");
-            }
-
-            port.Temperature = port.Connection.Temperature;
-            port.Enthalpy = port.Connection.Enthalpy;
-
-            var otherIdentifier = port.Identifier == A ? B : A;
-            var otherPort = Ports[otherIdentifier];
-            otherPort.Enthalpy = port.Connection.Enthalpy;
-            if (port.Connection.Enthalpy != Enthalpy.NaN)
-            {
-                Fluid.UpdatePH(otherPort.Pressure, otherPort.Enthalpy);
-                otherPort.Temperature = Fluid.Temperature;
-            }
-
-            otherPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(otherPort.Connection);
-        }
-
-        public override bool IsMassBalanceEquationIndeterminate()
-        {
-            return Ports.Values.All(port => port.MassFlow == MassFlow.NaN);
-        }
-
         public void CascadePressureDownstream()
         {
             Port downstreamPort = GetDownstreamPort();
-            downstreamPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(downstreamPort.Connection);
+            downstreamPort.Pressure = OutletPressure;
+            
+            downstreamPort.Connection.Component.ReceiveAndCascadePressure(downstreamPort.Connection);
         }
     }
 }

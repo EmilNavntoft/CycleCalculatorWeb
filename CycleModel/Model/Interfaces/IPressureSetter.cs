@@ -8,7 +8,6 @@ namespace CycleCalculator.CycleModel.Model.Interfaces
 {
     public interface IPressureSetter
     {
-        abstract void InitializePressure();
         abstract void CascadePressureDownstream();
         abstract void StartPressureDropCalculation();
     }

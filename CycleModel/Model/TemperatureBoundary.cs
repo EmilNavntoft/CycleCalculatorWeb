@@ -4,7 +4,9 @@ using EngineeringUnits;
 using CycleCalculator.CycleModel.Model.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
+using System.Diagnostics;
 using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculatorWeb.CoolpropJsInterop;
 using Microsoft.JSInterop;
 
 namespace CycleCalculator.CycleModel.Model
@@ -54,7 +56,7 @@ namespace CycleCalculator.CycleModel.Model
             downstreamPort.MassFlow = MassFlow.Zero - upstreamPort.MassFlow;
             downstreamPort.Pressure = upstreamPort.Pressure;
 
-			TransferState();
+			TransferThermalState();
 
 			downstreamPort.Connection.Component.CalculateMassBalanceEquation(downstreamPort.Connection);
 		}
@@ -70,69 +72,29 @@ namespace CycleCalculator.CycleModel.Model
 			}
 			else if (Mode == TemperatureBoundaryMode.Superheating)
 			{
-				downstreamPort.Temperature = Fluid.GetSatTemperature(upstreamPort.Pressure) + Temperature.FromKelvin(Temperature.DegreeCelsius);
+				downstreamPort.Temperature = Fluid1.GetSatTemperature(upstreamPort.Pressure) + Temperature.FromKelvin(Temperature.DegreeCelsius);
 			}
 			else if (Mode == TemperatureBoundaryMode.Subcooling)
 			{
-				downstreamPort.Temperature = Fluid.GetSatTemperature(upstreamPort.Pressure) - Temperature.FromKelvin(Temperature.DegreeCelsius);
+				downstreamPort.Temperature = Fluid1.GetSatTemperature(upstreamPort.Pressure) - Temperature.FromKelvin(Temperature.DegreeCelsius);
 			}
+			
+			double h = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'H', 'P', upstreamPort.Pressure.Pascal, 'T', downstreamPort.Temperature.Kelvin, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+			double x = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'Q', 'P', upstreamPort.Pressure.Pascal, 'T', downstreamPort.Temperature.Kelvin, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
 
-			Fluid.UpdatePT(upstreamPort.Pressure, downstreamPort.Temperature);
-            downstreamPort.Enthalpy = Fluid.Enthalpy;
+			downstreamPort.Enthalpy = Enthalpy.FromJoulePerKilogram(h);
+            downstreamPort.Quality = x;
+            downstreamPort.Pressure = upstreamPort.Pressure;
 
+            TransferThermalState();
             HeatFlowExchanged = upstreamPort.MassFlow * (downstreamPort.Enthalpy - upstreamPort.Enthalpy);
+            GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation(GetDownstreamPort().Connection);
 		}
-
-        public override bool IsMassBalanceEquationIndeterminate()
-        {
-            return false;
-        }
-
-        public override void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
-        {
-            if (!Ports.ContainsValue(port))
-            {
-                throw new SolverException($"Cascaded port does not belong to {Name}");
-            }
-            port.Temperature = port.Connection.Temperature;
-            port.Pressure = port.Connection.Pressure;
-            port.Enthalpy = port.Connection.Enthalpy;
-
-            var otherIdentifier = port.Identifier == A ? B : A;
-            var otherPort = Ports[otherIdentifier];
-            otherPort.Pressure = port.Connection.Pressure;
-            if (Mode == TemperatureBoundaryMode.OutletTemperature)
-            {
-				otherPort.Temperature = Temperature;
-			} 
-            else if (Mode == TemperatureBoundaryMode.Superheating)
-            {
-                otherPort.Temperature = Fluid.GetSatTemperature(port.Pressure) + Temperature.FromKelvin(Temperature.DegreeCelsius);
-			} 
-            else if (Mode == TemperatureBoundaryMode.Subcooling)
-            {
-				otherPort.Temperature = Fluid.GetSatTemperature(port.Pressure) - Temperature.FromKelvin(Temperature.DegreeCelsius);
-			}
-            
-
-            if (port.Connection.Pressure != Pressure.NaN)
-            {
-                Fluid.UpdatePT(port.Connection.Pressure, Temperature);
-                otherPort.Enthalpy = Fluid.Enthalpy;
-            }
-        }
-
-        public void CascadeTemperatureAndEnthalpyDownstream()
-        {
-			CalculateHeatBalanceEquation(null);
-			Port downstreamPort = GetDownstreamPort();
-            downstreamPort.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(downstreamPort.Connection);
-        }
 
         public void StartHeatBalanceCalculation()
         {
             CalculateHeatBalanceEquation(null);
-            TransferState();
+            TransferThermalState();
             GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation(GetDownstreamPort().Connection);
         }
     }

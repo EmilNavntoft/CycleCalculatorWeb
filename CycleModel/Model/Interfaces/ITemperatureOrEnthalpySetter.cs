@@ -8,7 +8,6 @@ namespace CycleCalculator.CycleModel.Model.Interfaces
 {
     public interface ITemperatureOrEnthalpySetter
     {
-        abstract void CascadeTemperatureAndEnthalpyDownstream();
         abstract void StartHeatBalanceCalculation();
     }
 }

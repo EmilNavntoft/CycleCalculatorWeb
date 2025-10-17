@@ -1,10 +1,20 @@
-﻿<rect style="fill:#ffffff;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-opacity:1"
+﻿@using System.Globalization
+<rect style="fill:#ffffff;fill-opacity:0;stroke:#000000;stroke-width:2;stroke-opacity:1"
       id="rect1"
       width="50"
       height="50"
-      x="50"
-      y="25" />
+      x="@((50+Xoffset).ToString(_numberFormatInfo))"
+      y="@((25+Yoffset).ToString(_numberFormatInfo))" />
 
 @code {
+      [Parameter]
+      public double Xoffset { get; set; } = 0;
 
+      [Parameter]
+      public double Yoffset { get; set; } = 0;
+
+      NumberFormatInfo _numberFormatInfo = new NumberFormatInfo
+      {
+            NumberDecimalSeparator = "."
+      };
 }

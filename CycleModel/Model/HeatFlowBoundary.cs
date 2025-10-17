@@ -5,6 +5,7 @@ using static CycleCalculator.CycleModel.Model.IO.PortIdentifier;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculatorWeb.CoolpropJsInterop;
 using Microsoft.JSInterop;
 
 namespace CycleCalculator.CycleModel.Model
@@ -46,7 +47,7 @@ namespace CycleCalculator.CycleModel.Model
 
 			downstreamPort.MassFlow = MassFlow.Zero - upstreamPort.MassFlow;
 
-			TransferState();
+			TransferThermalState();
 
 			downstreamPort.Connection.Component.CalculateMassBalanceEquation(downstreamPort.Connection);
 		}
@@ -57,28 +58,17 @@ namespace CycleCalculator.CycleModel.Model
 			Port downstreamPort = GetDownstreamPort();
 			downstreamPort.Enthalpy = upstreamPort.Enthalpy + (HeatFlow / upstreamPort.MassFlow);
 
-			Fluid.UpdatePH(upstreamPort.Pressure, downstreamPort.Enthalpy);
-			downstreamPort.Temperature = Fluid.Temperature;
+			double t = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'T', 'P', upstreamPort.Pressure.Pascal, 'H', downstreamPort.Enthalpy.JoulePerKilogram, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+			double x = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'Q', 'P', upstreamPort.Pressure.Pascal, 'H', downstreamPort.Enthalpy.JoulePerKilogram, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+			downstreamPort.Temperature = Temperature.FromKelvins(t);
+			downstreamPort.Quality = x;
+			downstreamPort.Pressure = downstreamPort.Pressure;
+			
 			HeatFlowExchanged = upstreamPort.MassFlow * (downstreamPort.Enthalpy - upstreamPort.Enthalpy);
 
-			TransferState();
+			TransferThermalState();
 			downstreamPort.Connection.Component.CalculateHeatBalanceEquation(downstreamPort.Connection);
-		}
-
-		public override bool IsMassBalanceEquationIndeterminate()
-		{
-			return false;
-		}
-
-		public override void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
-		{
-			if (!Ports.ContainsValue(port))
-			{
-				throw new SolverException($"Cascaded port does not belong to {Name}");
-			}
-			port.Temperature = port.Connection.Temperature;
-			port.Pressure = port.Connection.Pressure;
-			port.Enthalpy = port.Connection.Enthalpy;
+			GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation(GetDownstreamPort().Connection);
 		}
 	}
 }

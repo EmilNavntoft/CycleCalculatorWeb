@@ -60,43 +60,6 @@ namespace CycleCalculator.CycleModel.Model
             }
         }
 
-        public override void ReceiveAndCascadeTemperatureAndEnthalpy(Port cascadedPort)
-        {
-            if (!Ports.ContainsValue(cascadedPort))
-            {
-                throw new SolverException($"Cascaded port does not belong to {Name}");
-            }
-
-            cascadedPort.Temperature = cascadedPort.Connection.Temperature;
-            cascadedPort.Enthalpy = cascadedPort.Connection.Enthalpy;
-
-            List<Port> upstreamPorts = GetUpstreamPorts();
-            List<Port> downstreamPorts = GetDownstreamPorts();
-
-            if (downstreamPorts.Count == 1 && upstreamPorts.Count == 2)
-            {
-                if (upstreamPorts.Any(port => port.Enthalpy == Enthalpy.NaN)) return;
-
-                var totalDownstreamMassFlow = upstreamPorts[0].MassFlow + upstreamPorts[1].MassFlow;
-                downstreamPorts[0].Enthalpy = (upstreamPorts[0].Enthalpy * upstreamPorts[0].MassFlow + upstreamPorts[1].Enthalpy * upstreamPorts[1].MassFlow) / totalDownstreamMassFlow;
-                downstreamPorts[0].Temperature = (upstreamPorts[0].Temperature * upstreamPorts[0].MassFlow + upstreamPorts[1].Temperature * upstreamPorts[1].MassFlow) / totalDownstreamMassFlow;
-
-                foreach (Port port in downstreamPorts)
-                {
-                    port.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(port.Connection);
-                }
-            }
-            else
-            {
-                foreach (Port port in downstreamPorts)
-                {
-                    port.Temperature = cascadedPort.Connection.Temperature;
-                    port.Enthalpy = cascadedPort.Connection.Enthalpy;
-                    port.Connection.Component.ReceiveAndCascadeTemperatureAndEnthalpy(port.Connection);
-                }
-            }
-        }
-
         public override void CalculateMassBalanceEquation(Port _)
         {
             var upstreamPorts = GetUpstreamPorts();
@@ -141,7 +104,7 @@ namespace CycleCalculator.CycleModel.Model
                 downstreamPort.Pressure = upstreamPorts[0].Pressure;
             }
 
-            TransferState(); 
+            TransferThermalState(); 
 
             foreach (var downstreamPort in downstreamPorts)
             {
@@ -166,11 +129,15 @@ namespace CycleCalculator.CycleModel.Model
                 var totalDownstreamMassFlow = upstreamPorts[0].MassFlow + upstreamPorts[1].MassFlow;
                 downstreamPorts[0].Enthalpy = (upstreamPorts[0].Enthalpy * upstreamPorts[0].MassFlow + upstreamPorts[1].Enthalpy * upstreamPorts[1].MassFlow) / totalDownstreamMassFlow;
                 downstreamPorts[0].Temperature = (upstreamPorts[0].Temperature * upstreamPorts[0].MassFlow + upstreamPorts[1].Temperature * upstreamPorts[1].MassFlow) / totalDownstreamMassFlow;
+                downstreamPorts[0].Quality = (upstreamPorts[0].Quality * upstreamPorts[0].MassFlow + upstreamPorts[1].Quality * upstreamPorts[1].MassFlow) / totalDownstreamMassFlow;
+                downstreamPorts[0].Pressure = upstreamPorts[0].Pressure;
             }
             else if (downstreamPorts.Count == 1 && upstreamPorts.Count == 1)
             {
                 downstreamPorts[0].Enthalpy = upstreamPorts[0].Enthalpy;
                 downstreamPorts[0].Temperature = upstreamPorts[0].Temperature;
+                downstreamPorts[0].Quality = upstreamPorts[0].Quality;
+                downstreamPorts[0].Pressure = upstreamPorts[0].Pressure;
             }
             else if (downstreamPorts.Count == 2)
             {
@@ -178,6 +145,8 @@ namespace CycleCalculator.CycleModel.Model
                 {
                     port.Enthalpy = upstreamPorts[0].Enthalpy;
                     port.Temperature = upstreamPorts[0].Temperature;
+                    port.Quality = upstreamPorts[0].Quality;
+                    port.Pressure = upstreamPorts[0].Pressure;
                 }
             }
             else
@@ -186,19 +155,12 @@ namespace CycleCalculator.CycleModel.Model
                 throw new SolverException($"More than two downstream ports in {Name}");
             }
 
-            TransferState();
+            TransferThermalState();
 
             foreach (var port in downstreamPorts)
             {
                 port.Connection.Component.CalculateHeatBalanceEquation(port.Connection);
             }
-        }
-
-        public override bool IsMassBalanceEquationIndeterminate()
-        {
-            var unknownPorts = GetUnknownPorts();
-            var upstreamPorts = GetUpstreamPorts();
-            return unknownPorts.Count == 2 && upstreamPorts.Count == 1;
         }
 
         public List<Port> GetDownstreamPorts()
@@ -242,16 +204,6 @@ namespace CycleCalculator.CycleModel.Model
         public List<Port> GetUnknownPorts()
         {
             return Ports.Values.ToList().FindAll(port => port.MassFlow == MassFlow.NaN);
-        }
-
-        public void StartMassBalanceCalculation()
-        {
-            CalculateMassBalanceEquation(null);
-            var downstreamPorts = GetDownstreamPorts();
-            foreach (var port in downstreamPorts)
-            {
-                port.Connection.Component.CalculateMassBalanceEquation(port.Connection);
-            }
         }
     }
 }

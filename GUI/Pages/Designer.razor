@@ -97,6 +97,8 @@
 	SaveFile? _loadedSaveFile;
 	public async void LoadSaveFileData(InputFileChangeEventArgs e)
 	{
+		_connectors.Clear();
+		_dragDrops.Clear();
 		MemoryStream ms = new MemoryStream();
 		await e.File.OpenReadStream().CopyToAsync(ms);
 		var bytes = ms.ToArray();
@@ -170,10 +172,20 @@
 		_loadedSaveFile = null;
 	}
 
-	private void RunCalculation()
+	private async Task RunCalculation()
 	{
+		await SetWaitCursor(true);
 		Solver.Reset();
 		Solver.Solve();
+		await SetWaitCursor(false);
+	}
+	
+	private async Task SetWaitCursor(bool isWaiting)
+	{
+		if (isWaiting)
+			await JS.InvokeVoidAsync("eval", "document.body.style.cursor = 'wait'");
+		else
+			await JS.InvokeVoidAsync("eval", "document.body.style.cursor = 'default'");
 	}
 
 	private void AddComponent(CycleComponentType type)
@@ -197,6 +209,9 @@
 				break;
 			case CycleComponentType.Sensor:
 				AddSensor();
+				break;
+			case CycleComponentType.HeatExchanger:
+				AddHeatExchanger();
 				break;
 			default:
 				break;
@@ -285,6 +300,18 @@
 		Sensor sensor = new Sensor(dragDrop.Name, _coolpropJs);
 		dragDrop.CycleComponent = sensor;
 		LayoutBuilder.AddComponent(sensor);
+	}
+	
+	private int _nHex = 1;
+	private void AddHeatExchanger()
+	{
+		DragDrop dragDrop = new DragDrop();
+		dragDrop.Name = $"HeatExchanger{_nHex}";
+		_nHex++;
+		_dragDrops.Add(dragDrop);
+		PlateHeatExchanger plateHeatExchanger = new PlateHeatExchanger(dragDrop.Name, _coolpropJs);
+		dragDrop.CycleComponent = plateHeatExchanger;
+		LayoutBuilder.AddComponent(plateHeatExchanger);
 	}
 
 	private void DragDropInitialized(DragDrop dragDropDisplayed, DragDrop dragDropData)

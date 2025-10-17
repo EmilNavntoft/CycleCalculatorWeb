@@ -43,11 +43,13 @@
 
 	@if (CycleComponent is CycleCalculator.CycleModel.Model.Sensor && CycleComponent.PortA.Temperature != EngineeringUnits.Temperature.NaN)
 	{
-		<svg height="65" width="200" y="-35" style="user-select: none;">
+		string arrow = CycleComponent.PortA.MassFlow.KilogramPerSecond > 0 ? "-->" : "<--";
+		<svg height="75" width="200" y="-35" style="user-select: none;">
 			<text x="45" y="15" fill="black">@($"T: {Math.Round(CycleComponent.PortA.Temperature.DegreeCelsius, 1)} °C")</text>
 			<text x="45" y="30" fill="black">@($"h: {Math.Round(CycleComponent.PortA.Enthalpy.KilojoulePerKilogram, 1)} kJ/kg")</text>
 			<text x="45" y="45" fill="black">@($"p: {Math.Round(CycleComponent.PortA.Pressure.Bar, 1)} bar")</text>
-			<text x="45" y="60" fill="black">@($"m: {Math.Round(CycleComponent.PortA.MassFlow.KilogramPerSecond, 1)} kg/s")</text>
+			<text x="45" y="60" fill="black">@($"m: {Math.Abs(Math.Round(CycleComponent.PortA.MassFlow.KilogramPerSecond, 1))} kg/s {arrow}")</text>
+			<text x="45" y="75" fill="black">@($"x: {Math.Round(CycleComponent.PortA.Quality, 2)} -")</text>
 		</svg>
 	}
 	@if (CycleComponent is IPowerConsumer && CycleComponent.PortA.Temperature != EngineeringUnits.Temperature.NaN)

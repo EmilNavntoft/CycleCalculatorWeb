@@ -4,7 +4,9 @@ using CycleCalculator.CycleModel.Model.IO;
 using CycleCalculator.CycleModel.Model.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
+using System.Diagnostics;
 using CycleCalculator.CycleModel.Exceptions;
+using CycleCalculatorWeb.CoolpropJsInterop;
 using Microsoft.JSInterop;
 namespace CycleCalculator.CycleModel.Model
 {
@@ -64,52 +66,53 @@ namespace CycleCalculator.CycleModel.Model
                 PortB.MassFlow = MassFlow.Zero - NominalMassFlow;
             }
             
-            TransferState();
+            TransferThermalState();
         }
 
-        public override void CalculatePressureDrop(Port _)
+        public void StartHeatBalanceCalculation()
         {
-            return;
+            CalculateHeatBalanceEquation(null);
+            TransferThermalState();
+            GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation(GetDownstreamPort().Connection);
         }
 
         public override void CalculateHeatBalanceEquation(Port _)
         {
+            Stopwatch sw =  new Stopwatch();
+
             Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
-            Fluid.UpdatePH(upstreamPort.Pressure, upstreamPort.Enthalpy);
-            SpecificEntropy inletEntropy = Fluid.Entropy;
+            
+            double s = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'S', 'P', upstreamPort.Pressure.Pascal, 'H', upstreamPort.Enthalpy.JoulePerKilogram, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+            SpecificEntropy inletEntropy = SpecificEntropy.FromJoulePerKilogramKelvin(s);
 
-            Fluid.UpdatePS(DischargePressure, inletEntropy);
-            Enthalpy isentropicOutletEnthalpy = Fluid.Enthalpy;
+            double h;
+            try
+            {
+                h = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'H', 'P', DischargePressure.Pascal, 'S', inletEntropy.JoulePerKilogramKelvin, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+            }
+            catch
+            {
+                h = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'H', 'P', DischargePressure.Pascal, "S|twophase", inletEntropy.JoulePerKilogramKelvin, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+            }
+
+            Enthalpy isentropicOutletEnthalpy = Enthalpy.FromJoulePerKilogram(h);
             Enthalpy specificIsentropicWork = isentropicOutletEnthalpy - upstreamPort.Enthalpy;
             Enthalpy actualOutletEnthalpy = upstreamPort.Enthalpy + (specificIsentropicWork / Efficiency);
 
-			Fluid.UpdatePH(DischargePressure, actualOutletEnthalpy);
-            downstreamPort.Temperature = Fluid.Temperature;
+            double t = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'T', 'P', DischargePressure.Pascal, 'H', actualOutletEnthalpy.JoulePerKilogram, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+            double x = Fluid1.CoolpropJs.Invoke<double>("PropsSI", 'Q', 'P', DischargePressure.Pascal, 'H', actualOutletEnthalpy.JoulePerKilogram, FluidNameStrings.FluidNameToStringDict[Fluid1.FluidName]);
+
+            downstreamPort.Temperature = Temperature.FromKelvin(t);
             downstreamPort.Pressure = DischargePressure;
             downstreamPort.Enthalpy = actualOutletEnthalpy;
+            downstreamPort.Quality = x;
 
             PowerConsumption = upstreamPort.MassFlow * (downstreamPort.Enthalpy - upstreamPort.Enthalpy);
 
-			TransferState();
-            GetDownstreamPort().Connection.Component.CalculateHeatBalanceEquation(GetDownstreamPort().Connection);
-        }
-
-        public override void ReceiveAndCascadeTemperatureAndEnthalpy(Port port)
-        {
-            if (!Ports.ContainsValue(port))
-            {
-                throw new SolverException($"Cascaded port does not belong to {Name}");
-            }
-
-            bool portIsDownstreamPort = GetDownstreamPort() == port;
-            if (portIsDownstreamPort)
-            {
-                throw new SolverException($"Downstream port of compressor {Name} is connected to the downstream port of compressor {port.Connection.Component.Name}");
-            }
-
-            port.Temperature = port.Connection.Temperature;
-            port.Enthalpy = port.Connection.Enthalpy;
+			TransferThermalState();
+            sw.Stop();
+            Debug.Print($"Compressor calc time: {sw.ElapsedMilliseconds} ms");
         }
 
         public override void ReceiveAndCascadeMassFlow(Port port)

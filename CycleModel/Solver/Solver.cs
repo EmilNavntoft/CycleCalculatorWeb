@@ -6,6 +6,8 @@ using CycleCalculatorWeb.Utils;
 using EngineeringUnits;
 using HSG.Numerics;
 using System.Diagnostics;
+using CycleCalculatorWeb.CoolpropJsInterop;
+using CycleCalculatorWeb.CycleModel.Model;
 
 namespace CycleCalculator.CycleModel.Solver
 {
@@ -261,7 +263,7 @@ namespace CycleCalculator.CycleModel.Solver
 			}
 		}
 
-        public static void Solve()
+        public static string Solve()
         {
             cycleComponents = LayoutBuilder.CycleComponents;
             List<IPressureSetter> pressureSetters = cycleComponents.FindAll(c => c is IPressureSetter).Cast<IPressureSetter>().ToList();
@@ -272,21 +274,24 @@ namespace CycleCalculator.CycleModel.Solver
             List<Pipe> pipes = cycleComponents.FindAll(c => c is Pipe).Cast<Pipe>().ToList();
             
             Stopwatch stopwatch = Stopwatch.StartNew();
-            
+
+            string errorMessage = "";
             try
             {
-	            int iteration = 1;
-	            while (!IsStable(iteration, cycleComponents))
+	            int iterationCount = 0;
+	            Stopwatch sw = Stopwatch.StartNew();
+	            CascadeKnownPressures(pressureSetters);
+	            CascadeKnownMassflows(massFlowSetters);
+	            PerformMassBalanceCalculations(massFlowSetters);
+	            sw.Stop();
+	            Debug.WriteLine(sw.ElapsedMilliseconds);
+	            while (!IsStable(iterationCount, cycleComponents))
 	            {
-		            CascadeKnownPressures(pressureSetters);
-		            CascadeKnownMassflows(massFlowSetters);
-		            PerformMassBalanceCalculations(massFlowSetters);
-		            CascadeInitialTemperaturesAndEnthalpies(temperatureOrEnthalpySetters);
-		            PerformPressureDropCalculations(pressureSetters);
-		            PerformHeatBalanceCalculations(temperatureOrEnthalpySetters);
-		            PerformHeatExchangerCalculations(heatExchangers);
 		            StorePortStates(cycleComponents);
-		            iteration++;
+		            SetGuessForMissingValues(cycleComponents);
+		            PerformHeatBalanceCalculations(massFlowSetters);
+		            PerformHeatExchangerCalculations(heatExchangers);
+		            iterationCount++;
 	            }
             }
             catch (Exception ex)
@@ -294,12 +299,13 @@ namespace CycleCalculator.CycleModel.Solver
                 Debug.WriteLine(ex.Message);
 				JsLogger.Log(ex.Message);
 				JsLogger.Log(ex.StackTrace);
+				errorMessage = ex.Message;
             }
 
             stopwatch.Stop();
             Debug.WriteLine(stopwatch.ElapsedMilliseconds);
 
-            return;
+            return errorMessage;
         }
 
         private static void CascadeKnownPressures(List<IPressureSetter> pressureSetters)
@@ -307,21 +313,53 @@ namespace CycleCalculator.CycleModel.Solver
             //Cascade known values
             foreach (IPressureSetter pressureSetter in pressureSetters)
             {
-                pressureSetter.InitializePressure();
-            }
-            foreach (IPressureSetter pressureSetter in pressureSetters)
-            {
                 pressureSetter.CascadePressureDownstream();
             }
         }
 
-        private static void PerformHeatBalanceCalculations(List<ITemperatureOrEnthalpySetter> temperatureOrEnthalpySetters)
+        private static void PerformHeatBalanceCalculations(List<IMassFlowSetter> massFlowSetters)
         {
             //Calculate heat balance
-            foreach (ITemperatureOrEnthalpySetter temperatureOrEnthalpySetter in temperatureOrEnthalpySetters)
+            foreach (IMassFlowSetter massFlowSetter in massFlowSetters)
             {
-                temperatureOrEnthalpySetter.StartHeatBalanceCalculation();
+	            massFlowSetter.StartHeatBalanceCalculation();
             }
+        }
+        
+        private static void SetGuessForMissingValues(List<CycleComponent> cycleComponents)
+        {
+	        // Set thermal state guesses if some are still not set
+	        foreach (CycleComponent cycleComponent in cycleComponents)
+	        {
+		        var ports = cycleComponent.Ports.Values.ToList();
+		        
+			    foreach (var port in ports)
+			    {
+				    if (port.Enthalpy == Enthalpy.NaN)
+				    {
+				        Temperature tempToSet;
+				        var fluid = cycleComponent.Fluid1;
+				        if (cycleComponent is PlateHeatExchanger)
+				        {
+					        fluid = ((PlateHeatExchanger)cycleComponent).FluidPortConnections[port.Identifier];
+				        }
+
+				        try
+					    {
+						    tempToSet = fluid.GetSatTemperature(port.Pressure);
+					    }
+					    catch
+					    {
+						    tempToSet = Temperature.FromDegreeCelsius(0);
+					    }
+
+					    double h = fluid.CoolpropJs.Invoke<double>("PropsSI", "H", "T", tempToSet.Kelvin, "Q", 1, FluidNameStrings.FluidNameToStringDict[fluid.FluidName]);
+					    port.Temperature = tempToSet;
+					    port.Enthalpy = Enthalpy.FromJoulePerKilogram(h);
+					    port.Quality = 1;
+				    }
+			    }
+	        }
         }
 
         private static void PerformHeatExchangerCalculations(List<IHeatExchanger> heatExchangers)
@@ -331,24 +369,6 @@ namespace CycleCalculator.CycleModel.Solver
 	        {
 		        heatExchanger.CalculateHeatExchanger();
 	        }
-        }
-
-        private static void CascadeInitialTemperaturesAndEnthalpies(List<ITemperatureOrEnthalpySetter> temperatureOrEnthalpySetters)
-        {
-            //Cascade known values
-            foreach (ITemperatureOrEnthalpySetter temperatureOrEnthalpySetter in temperatureOrEnthalpySetters)
-            {
-                temperatureOrEnthalpySetter.CascadeTemperatureAndEnthalpyDownstream();
-            }
-        }
-
-        private static void PerformPressureDropCalculations(List<IPressureSetter> pressureSetters)
-        {
-            //Calculate pressure drops
-            foreach (IPressureSetter pressureSetter in pressureSetters)
-            {
-                pressureSetter.StartPressureDropCalculation();
-            }
         }
 
         private static void PerformMassBalanceCalculations(List<IMassFlowSetter> massFlowSetters)
@@ -386,8 +406,15 @@ namespace CycleCalculator.CycleModel.Solver
         {
 	        if (iteration <= 2)
 	        {
+		        // needs to calculate at least twice to know residual
 		        return false;
 	        }
+
+	        if (iteration > 100)
+	        {
+		        return true;
+	        }
+	        
 	        double largesResidual = 0;
 	        foreach (CycleComponent component in components)
 	        {

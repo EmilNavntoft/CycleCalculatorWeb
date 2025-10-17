@@ -12,5 +12,6 @@ namespace CycleCalculator.CycleModel.Model.Interfaces
         abstract void CascadeMassFlowDownstream();
         abstract void CascadeMassFlowUpstream();
         abstract void StartMassBalanceCalculation();
+        abstract void StartHeatBalanceCalculation();
     }
 }

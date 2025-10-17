@@ -23,7 +23,7 @@ namespace CycleCalculator.CycleModel.Model
 			downstreamPort.MassFlow = MassFlow.Zero - upstreamPort.MassFlow;
 			downstreamPort.Pressure = upstreamPort.Pressure;
 
-			TransferState();
+			TransferThermalState();
 
 			downstreamPort.Connection.Component.CalculateMassBalanceEquation(downstreamPort.Connection);
 		}
@@ -33,10 +33,9 @@ namespace CycleCalculator.CycleModel.Model
 			Port upstreamPort = GetUpstreamPort();
             Port downstreamPort = GetDownstreamPort();
 
-			downstreamPort.Temperature = upstreamPort.Temperature;
-			downstreamPort.Enthalpy = upstreamPort.Enthalpy;
-
-			TransferState();
+			upstreamPort.CopyThermalStateTo(downstreamPort);
+			
+			TransferThermalState();
 			downstreamPort.Connection.Component.CalculateHeatBalanceEquation(downstreamPort.Connection);
 		}
 	}

@@ -62,6 +62,19 @@ namespace CycleCalculator.CycleModel.Model.IO
                 _enthalpy = value;
             }
         }
+        
+        private double _quality = 0;
+        public double Quality
+        {
+            get
+            {
+                return _quality;
+            }
+            set
+            {
+                _quality = value;
+            }
+        }
 
         private Port? _connection;
         public Port Connection { 
@@ -94,12 +107,17 @@ namespace CycleCalculator.CycleModel.Model.IO
 			Connection = null;
 		}
 
-		public void ReceiveState()
+		public void ReceiveThermalStateFromConnection()
         {
-            Pressure = Connection.Pressure;
-            Temperature = Connection.Temperature;
-            MassFlow = MassFlow.Zero - Connection.MassFlow;
-            Enthalpy = Connection.Enthalpy;
+            Connection.CopyThermalStateTo(this);
+        }
+
+        public void CopyThermalStateTo(Port port)
+        {
+            port.Enthalpy = Enthalpy;
+            port.Temperature = Temperature;
+            port.Quality = Quality;
+            port.Pressure = Pressure;
         }
     }
 }
