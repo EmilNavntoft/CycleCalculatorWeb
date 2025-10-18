@@ -64,7 +64,7 @@
 	{
 		if (firstRender)
 		{
-			var jsInProcess = (IJSInProcessRuntime)JS;
+			await JS.InvokeVoidAsync("initializeCoolprop");
 			_coolpropJs = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./js/functions.js");
 			JsLogger.JsRuntime = JS;
 		}
@@ -99,6 +99,7 @@
 	{
 		_connectors.Clear();
 		_dragDrops.Clear();
+		LayoutBuilder.CycleComponents.Clear();
 		MemoryStream ms = new MemoryStream();
 		await e.File.OpenReadStream().CopyToAsync(ms);
 		var bytes = ms.ToArray();

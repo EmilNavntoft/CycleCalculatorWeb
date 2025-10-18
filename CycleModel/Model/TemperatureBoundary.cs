@@ -16,7 +16,7 @@ namespace CycleCalculator.CycleModel.Model
         public enum TemperatureBoundaryMode
 		{
             OutletTemperature,
-            Superheating,
+            SuperHeating,
             Subcooling
         }
 
@@ -70,7 +70,7 @@ namespace CycleCalculator.CycleModel.Model
 			{
 				downstreamPort.Temperature = Temperature;
 			}
-			else if (Mode == TemperatureBoundaryMode.Superheating)
+			else if (Mode == TemperatureBoundaryMode.SuperHeating)
 			{
 				downstreamPort.Temperature = Fluid1.GetSatTemperature(upstreamPort.Pressure) + Temperature.FromKelvin(Temperature.DegreeCelsius);
 			}
